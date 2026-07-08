@@ -56,6 +56,11 @@
 </div>
 </div>
 <script>
+window.onerror=function(msg,src,line,col,err){
+  var p=document.getElementById('cpu-pane');
+  if(p){p.style.cssText='padding:16px;font-family:monospace;font-size:11px;color:red;white-space:pre-wrap';p.textContent='JS ERROR:\n'+msg+'\nLine: '+line+'\nCol: '+col+'\n'+(err?err.stack:'');}
+  return true;
+};
 const REG_NAMES=['R0','R1','R2','R3'];
 let cpu={regs:[0,0,0,0],pc:0,mem:new Array(32).fill(0),flags:{zero:0,bit8:0,bit7:0}};
 let currentPane='alu',cuStep=0,cuLog=[];
@@ -616,12 +621,13 @@ function showWelcome(){
   if(!currentUser||!saveData.users[currentUser]){
     // Show user selection / creation
     const ul=userList();
-    const userCards=ul.map(({key,data})=>
-      '<div onclick="setUser(\''+key+'\');showWelcome()" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--fill-accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-        +'<div><div style="font-size:13px;font-weight:700">'+escHtml(data.displayName)+'<\/div><div style="font-size:11px;color:var(--text-muted)">'+LEVEL_CONFIG[Math.min(data.maxUnlocked,6)].label+' &bull; '+data.xp+' XP<\/div><\/div>'
-        +'<div style="font-size:11px;color:var(--text-accent)">&#9654; Continue<\/div>'
-      +'<\/div>'
-    ).join('');
+    const userCards=ul.map(function(item){
+    var key=item.key,data=item.data;
+    return '<div data-userkey="'+key+'" class="user-card" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px">'
+      +'<div><div style="font-size:13px;font-weight:700">'+escHtml(data.displayName)+'<\/div><div style="font-size:11px;color:var(--text-muted)">'+LEVEL_CONFIG[Math.min(data.maxUnlocked,6)].label+' &bull; '+data.xp+' XP<\/div><\/div>'
+      +'<div style="font-size:11px;color:var(--text-accent)">&#9654; Continue<\/div>'
+      +'<\/div>';
+  }).join('')
 
     pane.innerHTML='<div class="pane-header"><div class="pane-title">Virtual CPU<\/div><div class="pane-subtitle">A hands-on computer for aspiring ethical hackers<\/div><\/div>'
       +(ul.length>0
@@ -636,16 +642,22 @@ function showWelcome(){
       +'<\/div>';
 
     // Bind create button
-    setTimeout(()=>{
+    setTimeout(function(){
       const btn=document.getElementById('welcome-create-btn');
       const inp=document.getElementById('welcome-username');
       if(btn&&inp){
-        btn.addEventListener('click',()=>{
-          const name=inp.value.trim();
-          if(name){createUser(name);showWelcome();}
-        });
-        inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const name=inp.value.trim();if(name){createUser(name);showWelcome();}}});
+        btn.addEventListener('click',function(){const name=inp.value.trim();if(name){createUser(name);showWelcome();}});
+        inp.addEventListener('keydown',function(e){if(e.key==='Enter'){const name=inp.value.trim();if(name){createUser(name);showWelcome();};}});
       }
+      // Bind user card clicks
+      document.querySelectorAll('.user-card[data-userkey]').forEach(function(card){
+        card.addEventListener('click',function(){
+          setUser(card.getAttribute('data-userkey'));
+          showWelcome();
+        });
+        card.addEventListener('mouseover',function(){card.style.borderColor='var(--fill-accent)';});
+        card.addEventListener('mouseout',function(){card.style.borderColor='var(--border)';});
+      });
     },50);
     return;
   }
@@ -829,7 +841,12 @@ function loadSaveFile(file) {
 
 function buildPlayerPanel() {
   const u = getUser();
-  if (!u) return '';
+  if (!u) {
+    const ul=userList();
+    if(!ul.length) return '<div style="border-top:0.5px solid var(--border);padding-top:10px;font-size:11px;color:var(--text-muted)">Create a username to begin.<\/div>';
+    const opts=ul.map(function(x){return'<option value="'+x.key+'">'+escHtml(x.data.displayName)+'<\/option>';}).join('')+'<option value="__new__">+ New user...<\/option>';
+    return '<div style="border-top:0.5px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:6px"><select id="user-sel" style="width:100%;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:11px;font-weight:600">'+opts+'<\/select><\/div>';
+  }
   const ul = userList();
   const progress = xpToNextUnlock(u);
   const cfg = LEVEL_CONFIG[u.level] || LEVEL_CONFIG[1];
@@ -1184,11 +1201,12 @@ function bindPlayerEvents() {
   });
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+window.onload=function(){
   initAls('ADD','guided');
   document.getElementById('map-mem-mini').innerHTML=cpu.mem.map(()=>'<div class="mem-mini-cell"><\/div>').join('');
   const _pp=document.getElementById('player-panel');
   if(_pp)_pp.innerHTML=buildPlayerPanel();
   bindPlayerEvents();
   showWelcome();
-});
+};
+
