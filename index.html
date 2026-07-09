@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual CPU v0.1-beta</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<style>
+:root{--font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--font-mono:'SF Mono','Fira Code',monospace;--radius:6px;--text-primary:#1a1a1a;--text-secondary:#555;--text-muted:#888;--text-accent:#2563eb;--text-success:#16a34a;--text-danger:#dc2626;--text-warning:#92400e;--surface-0:#fff;--surface-1:#f8f9fa;--surface-2:#f1f3f5;--border:#e2e8f0;--border-strong:#cbd5e1;--border-accent:#93c5fd;--border-success:#86efac;--border-danger:#fca5a5;--border-warning:#fcd34d;--fill-accent:#2563eb;--bg-accent:#eff6ff;--bg-success:#f0fdf4;--bg-danger:#fef2f2;--bg-warning:#fffbeb}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--text-primary);background:#f0f4f8;font-size:14px;min-height:100vh}
+.page{max-width:1100px;margin:0 auto;padding:20px 16px}
+h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.tagline{font-size:13px;color:var(--text-secondary);margin-bottom:18px}
+.cpu-shell{display:grid;grid-template-columns:230px 1fr;min-height:680px;border:0.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface-0);box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.cpu-map{background:var(--surface-1);border-right:0.5px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:7px;overflow-y:auto}
+.map-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
+.cpu-boundary{border:1.5px solid var(--border-accent);border-radius:10px;padding:10px;background:var(--bg-accent);display:flex;flex-direction:column;gap:6px}
+.cpu-boundary-label{font-size:10px;font-weight:700;color:var(--text-accent);text-transform:uppercase;letter-spacing:.07em}
+.map-block{border:0.5px solid var(--border);border-radius:7px;padding:8px 10px;cursor:pointer;background:var(--surface-2);transition:border-color .15s,background .15s}
+.map-block:hover{border-color:var(--border-strong)}
+.map-block.active{border-color:var(--fill-accent);background:#fff}
+.map-block-name{font-size:12px;font-weight:700;color:var(--text-primary)}
+.map-block-desc{font-size:10px;color:var(--text-secondary);margin-top:2px;line-height:1.35}
+.reg-live{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:5px}
+.reg-chip{background:var(--surface-0);border:0.5px solid var(--border);border-radius:4px;padding:3px 6px;font-family:var(--font-mono);font-size:10px;display:flex;justify-content:space-between;gap:4px}
+.reg-chip-name{color:var(--text-accent);font-weight:700}
+.reg-chip.wrote{border-color:var(--border-success);background:var(--bg-success)}
+.reg-chip.wrote .reg-chip-val{color:var(--text-success)}
+.flags-live{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap}
+.flag-chip{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;font-family:var(--font-mono);background:var(--surface-0);border:0.5px solid var(--border);color:var(--text-muted)}
+.flag-chip.set{background:var(--bg-success);border-color:var(--border-success);color:var(--text-success)}
+.mem-mini{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;margin-top:5px}
+.mem-mini-cell{height:7px;border-radius:2px;background:var(--surface-0);border:0.5px solid var(--border)}
+.mem-mini-cell.nz{background:var(--fill-accent);border-color:var(--fill-accent)}
+.outside-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.cpu-pane{padding:20px;overflow-y:auto;max-height:680px}
+.pane-header{display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--border)}
+.pane-title{font-size:16px;font-weight:700}
+.pane-subtitle{font-size:12px;color:var(--text-secondary)}
+.op-grid{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.op-btn{padding:5px 11px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-1);cursor:pointer;font-size:12px;font-weight:500;color:var(--text-primary)}
+.op-btn.active{background:var(--fill-accent);border-color:var(--fill-accent);color:#fff}
+.mode-toggle{display:flex;gap:5px;margin-bottom:10px}
+.mode-btn{padding:4px 13px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-1);cursor:pointer;font-size:11px;font-weight:500;color:var(--text-secondary)}
+.mode-btn.active{background:var(--fill-accent);border-color:var(--fill-accent);color:#fff}
+.explain-box{background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);margin-bottom:10px;font-size:12px;color:var(--text-accent);line-height:1.65;overflow:hidden}
+.explain-toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;user-select:none;font-weight:600;font-size:12px;color:var(--text-accent)}
+.explain-body{padding:0 12px 10px;display:none}
+.explain-body.open{display:block}
+.explain-body p{margin-bottom:6px}.explain-body p:last-child{margin-bottom:0}
+.wb{background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;overflow-x:auto}
+.wb-sub{font-size:11px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5}
+.wb-row-wrap{display:flex;align-items:center;gap:6px;margin-bottom:4px;min-width:360px}
+.wb-row-label{font-size:11px;font-weight:700;font-family:var(--font-mono);color:var(--text-secondary);width:20px;text-align:center;flex-shrink:0}
+.wb-grid{display:grid;grid-template-columns:28px 40px 14px 28px repeat(8,28px) 40px;gap:3px;align-items:center}
+.wb-header-wrap{display:flex;align-items:center;gap:6px;margin-bottom:4px;min-width:360px}
+.wb-header-spacer{width:20px;flex-shrink:0}
+.wb-header-grid{display:grid;grid-template-columns:28px 40px 14px 28px repeat(8,28px) 40px;gap:3px;align-items:center}
+.wb-header-cell{font-size:9px;color:var(--text-muted);font-family:var(--font-mono);text-align:center}
+.wb-target{height:28px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--text-primary)}
+.wb-tally{height:28px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-0);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--text-muted)}
+.wb-tally.match{border-color:var(--border-success);background:var(--bg-success);color:var(--text-success)}
+.wb-ellipsis{font-size:12px;color:var(--text-muted);text-align:center}
+.wb-bit8{width:28px;height:28px;border-radius:var(--radius);border:0.5px dashed var(--border-strong);background:var(--surface-1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--text-muted)}
+.wb-bit8.clickable{cursor:pointer}
+.wb-bit8.correct{background:var(--bg-success);border-color:var(--border-success);color:var(--text-success);border-style:solid}
+.wb-bit8.wrong{background:var(--bg-danger);border-color:var(--border-danger);color:var(--text-danger);border-style:solid}
+.wb-bit8.reveal{background:var(--bg-warning);border-color:var(--border-warning);color:var(--text-warning);border-style:solid}
+.wb-pos-label{font-size:9px;color:var(--text-muted);font-family:var(--font-mono);text-align:center}
+.bit-cell{width:28px;height:28px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-0);cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--text-muted);display:flex;align-items:center;justify-content:center;user-select:none;transition:background .1s,color .1s}
+.bit-cell.on{background:var(--fill-accent);border-color:var(--fill-accent);color:#fff}
+.bit-cell.readonly{cursor:default}
+.bit-cell.correct{background:var(--bg-success);border-color:var(--border-success);color:var(--text-success)}
+.bit-cell.wrong{background:var(--bg-danger);border-color:var(--border-danger);color:var(--text-danger)}
+.bit-cell.reveal{background:var(--bg-warning);border-color:var(--border-warning);color:var(--text-warning)}
+.wb-rand-btn{width:28px;height:28px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--surface-1);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.wb-rand-btn:hover{background:var(--surface-2)}
+.wb-rand-btn.invisible{visibility:hidden;pointer-events:none}
+.wb-divider{border:none;border-top:0.5px solid var(--border);margin:8px 0}
+.wb-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.btn-check{padding:6px 14px;border-radius:var(--radius);border:0.5px solid var(--border-success);background:var(--bg-success);color:var(--text-success);cursor:pointer;font-size:12px;font-weight:500}
+.btn-reveal{padding:6px 14px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-1);color:var(--text-secondary);cursor:pointer;font-size:12px}
+.btn-reset-ans{padding:6px 14px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-1);color:var(--text-secondary);cursor:pointer;font-size:12px}
+.wb-result{font-size:12px;font-weight:500;padding:4px 10px;border-radius:var(--radius);display:inline-block}
+.wb-result.ok{background:var(--bg-success);color:var(--text-success)}
+.wb-result.bad{background:var(--bg-danger);color:var(--text-danger)}
+.wb-hint{font-size:11px;color:var(--text-accent);font-style:italic;margin-top:8px;line-height:1.55;display:none;padding:7px 10px;background:var(--bg-accent);border-radius:var(--radius);border:0.5px solid var(--border-accent)}
+.flags-panel{background:var(--surface-1);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px}
+.flags-panel-title{font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.flags-row{display:flex;gap:7px;flex-wrap:wrap}
+.flag-block{flex:1;min-width:72px;background:var(--surface-0);border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 8px;text-align:center}
+.flag-block.set{background:var(--bg-success);border-color:var(--border-success)}
+.flag-block-name{font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.flag-block.set .flag-block-name{color:var(--text-success)}
+.flag-block-val{font-size:20px;font-weight:700;font-family:var(--font-mono);color:var(--text-muted)}
+.flag-block.set .flag-block-val{color:var(--text-success)}
+.flag-block-why{font-size:10px;color:var(--text-muted);margin-top:2px;line-height:1.3}
+.flag-block.set .flag-block-why{color:var(--text-success)}
+.save-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.save-label{font-size:12px;color:var(--text-secondary)}
+.reg-select{padding:6px 9px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary);font-size:12px;font-family:var(--font-mono);font-weight:500}
+.btn-save{padding:6px 15px;border-radius:var(--radius);border:none;background:var(--fill-accent);color:#fff;font-size:12px;font-weight:500;cursor:pointer}
+.btn-save:disabled{opacity:.4;cursor:default}
+.save-conf{font-size:12px;color:var(--text-success);font-weight:500;display:none}
+.mem-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.mem-cell{height:28px;border-radius:4px;background:var(--surface-1);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-family:var(--font-mono);color:var(--text-muted);cursor:pointer;transition:border-color .1s}
+.mem-cell.nz{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent)}
+.mem-cell:hover{border-color:var(--fill-accent)}
+.user-card:hover{border-color:var(--fill-accent) !important}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Virtual CPU <span style="font-size:11px;font-weight:400;color:var(--text-muted);background:var(--surface-2);padding:2px 6px;border-radius:4px">v0.1-beta</span></h1>
+<div class="cpu-shell">
+<div class="cpu-map">
+  <div class="map-title">Virtual CPU</div>
+  <div class="cpu-boundary">
+    <div class="cpu-boundary-label">CPU</div>
+    <div class="map-block" id="map-cu" onclick="selectPane('cu')">
+      <div class="map-block-name">Control unit</div>
+      <div class="map-block-desc">Fetches and decodes instructions</div>
+      <div style="margin-top:5px;display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--text-muted)">PC</span><span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text-accent)" id="map-pc">0x00</span></div>
+    </div>
+    <div class="map-block" id="map-alu" onclick="selectPane('alu')">
+      <div class="map-block-name">ALU</div>
+      <div class="map-block-desc">Arithmetic and logic</div>
+    </div>
+    <div class="map-block" id="map-regs" onclick="selectPane('regs')">
+      <div class="map-block-name">Registers</div>
+      <div class="map-block-desc">R0-R3 fast working storage</div>
+      <div class="reg-live">
+        <div class="reg-chip" id="rchip-0"><span class="reg-chip-name">R0</span><span class="reg-chip-val" id="rval-0">0</span></div>
+        <div class="reg-chip" id="rchip-1"><span class="reg-chip-name">R1</span><span class="reg-chip-val" id="rval-1">0</span></div>
+        <div class="reg-chip" id="rchip-2"><span class="reg-chip-name">R2</span><span class="reg-chip-val" id="rval-2">0</span></div>
+        <div class="reg-chip" id="rchip-3"><span class="reg-chip-name">R3</span><span class="reg-chip-val" id="rval-3">0</span></div>
+      </div>
+    </div>
+    <div class="map-block" id="map-flags" onclick="selectPane('flags')">
+      <div class="map-block-name">Flags register</div>
+      <div class="map-block-desc">Set by ALU, read by control unit</div>
+      <div class="flags-live">
+        <span class="flag-chip" id="fchip-zero">Zero:0</span>
+        <span class="flag-chip" id="fchip-bit8">Carry:0</span>
+        <span class="flag-chip" id="fchip-bit7">Bit7:0</span>
+      </div>
+    </div>
+  </div>
+  <div class="outside-label">Outside CPU</div>
+  <div class="map-block" id="map-mem" onclick="selectPane('mem')">
+    <div class="map-block-name">Memory (RAM)</div>
+    <div class="map-block-desc">32 slots - STORE / LOAD</div>
+    <div class="mem-mini" id="map-mem-mini"></div>
+  </div>
+  <div id="player-panel"></div>
+</div>
+<div class="cpu-pane" id="cpu-pane"></div>
+</div>
+</div>
+<script>
+
+window.onerror=function(msg,src,line,col,err){
+  var p=document.getElementById('cpu-pane');
+  if(p){p.style.cssText='padding:16px;font-family:monospace;font-size:11px;color:red;white-space:pre-wrap';p.textContent='JS ERROR:\n'+msg+'\nLine: '+line+'\nCol: '+col+'\n'+(err?err.stack:'');}
+  return true;
+};
+const REG_NAMES=['R0','R1','R2','R3'];
+let cpu={regs:[0,0,0,0],pc:0,mem:new Array(32).fill(0),flags:{zero:0,bit8:0,bit7:0}};
+let currentPane='alu',cuStep=0,cuLog=[];
+let als={opId:'ADD',mode:'guided',exA:200,exB:100,srcA:null,srcB:null,aBits:[],bBits:[],ansBits:new Array(8).fill(0),bit8Ans:0,result:null,checked:false,destReg:2};
+let PROGRAM=[],hackChallenge=null,hackAnswer='',hackRevealed=false,hackCorrect=false,seedVals=[];
+let monitorOpen=false;
+const ALU_OPS=[
+  {id:'ADD',sym:'A+B',fn:(a,b)=>((a+b)%256+256)%256,bit8Fn:(a,b)=>(a+b)>255?1:0,showBit8:true,
+   explain:'<p>Adds A and B. Our ALU uses 8 bits so the largest result it can hold is 255. If the result exceeds 255 it wraps back toward zero and the carry flag turns on to record the overflow. Full answer = (carry x 256) + the 8-bit result.<\/p><p>Click the carry cell first if you expect overflow, then flip the lower bits until the running total matches.<\/p>',
+   exA:200,exB:100,guidedSubtitle:'A=200, B=100. Work out the sum and set the answer row.',
+   guidedHint:'200+100=300. Click carry first (=256), then bits 5,3,2 add 44 more. Total: 300.'},
+  {id:'SUB',sym:'A-B',fn:(a,b)=>((a-b)%256+256)%256,bit8Fn:(a,b)=>a<b?1:0,showBit8:true,
+   explain:'<p>Subtracts B from A. To understand what happens when the result goes negative, you need to know how 8-bit systems work.<\/p><p><strong>8 bits = 256 possible values.<\/strong> With 8 bits you can represent exactly 256 different numbers (2 to the power of 8).<\/p><p><strong>Unsigned (0 to 255):<\/strong> all 256 combinations represent positive values. Bit 7 is treated as worth 128, just like any other bit.<\/p><p><strong>Signed (-128 to 127):<\/strong> if bit 7 is 0, the number is positive (0 to 127). If bit 7 is 1, the number is negative (-128 to -1). Bit 7 becomes a sign indicator, not a value. So 10000000 = -128, 10000001 = -127, all the way up to 11111111 = -1.<\/p><p><strong>Same bits, different meaning:<\/strong> the pattern 11111001 means 249 in an unsigned system and -7 in a signed system. The CPU does not decide -- the program does.<\/p><p><strong>When A is smaller than B<\/strong> the result goes below zero. Since 8 bits cannot store a true negative, it wraps from the bottom and the carry flag turns on to signal the borrow.<\/p>',
+   exA:5,exB:12,guidedSubtitle:'A=5, B=12. Work out the wrapped result.',
+   guidedHint:'5-12=-7. In 8-bit unsigned this wraps: -7+256=249=11111001. Carry ON to signal borrow. In a signed system that same pattern would be read as -7 directly.'},
+  {id:'AND',sym:'A AND B',fn:(a,b)=>a&b,bit8Fn:()=>0,showBit8:false,
+   explain:'<p>Bitwise AND: for each bit position, result is 1 only if both A and B have a 1 there. Otherwise 0.<\/p>',
+   exA:0b11001010,exB:0b00001111,guidedSubtitle:'A=202 (11001010), B=15 (00001111). Apply AND column by column.',
+   guidedHint:'1010 AND 1111 = 1010 = 10.'},
+  {id:'OR',sym:'A OR B',fn:(a,b)=>a|b,bit8Fn:()=>0,showBit8:false,
+   explain:'<p>Bitwise OR: result is 1 wherever either A or B has a 1. Only 0 if both are 0.<\/p>',
+   exA:0b10100000,exB:0b00001111,guidedSubtitle:'A=160 (10100000), B=15 (00001111). Apply OR column by column.',
+   guidedHint:'10100000 OR 00001111 = 10101111 = 175.'},
+  {id:'XOR',sym:'A XOR B',fn:(a,b)=>a^b,bit8Fn:()=>0,showBit8:false,
+   explain:'<p>Bitwise XOR: output 1 where the bits differ, 0 where they match. XOR is reversible -- apply it twice with the same value and you get the original back.<\/p>',
+   exA:0b01001000,exB:42,guidedSubtitle:'A=72 (scrambled), B=42 (key). XOR to recover the original.',
+   guidedHint:'01001000 XOR 00101010 = 01100010 = 98.'},
+  {id:'NOT',sym:'NOT A',fn:(a,b)=>(~a)&0xFF,bit8Fn:()=>0,showBit8:false,
+   explain:'<p>Flips every bit of A. B is not used. NOT(n) = 255 - n.<\/p>',
+   exA:60,exB:0,guidedSubtitle:'A=60 (00111100). Flip every bit.',
+   guidedHint:'00111100 becomes 11000011 = 195.'},
+  {id:'SHL',sym:'A<<1',fn:(a,b)=>(a<<1)&0xFF,bit8Fn:(a)=>(a&0x80)?1:0,showBit8:true,
+   explain:'<p>Shift left: every bit moves one place left, 0 slides in on the right. The leftmost bit falls off into the carry flag (worth 256). The net effect is that A is doubled.<\/p>',
+   exA:13,exB:0,guidedSubtitle:'A=13 (00001101). Shift all bits one place left.',
+   guidedHint:'00001101 becomes 00011010 = 26. Leftmost bit was 0 so carry = 0.'},
+  {id:'SHR',sym:'A>>1',fn:(a,b)=>(a>>1)&0xFF,bit8Fn:(a)=>a&1,showBit8:true,
+   explain:'<p>Shift right: every bit moves one place right, 0 slides in on the left. The rightmost bit falls off into the carry flag. The net effect is that A is halved (rounded down).<\/p>',
+   exA:100,exB:0,guidedSubtitle:'A=100 (01100100). Shift all bits one place right.',
+   guidedHint:'01100100 becomes 00110010 = 50. Rightmost bit was 0 so carry = 0.'},
+  {id:'EQ',sym:'A==B?',fn:(a,b)=>a===b?1:0,bit8Fn:()=>0,showBit8:false,
+   explain:'<p>Equality: outputs 1 if A and B are the same, 0 otherwise.<\/p><p>Unlike the other operations, the answer here is a single yes/no bit rather than a full 8-bit number. Set only bit 0 (the rightmost) in the answer row -- 1 for yes, 0 for no. Leave all other bits as 0.<\/p>',
+   exA:42,exB:42,guidedSubtitle:'A=42, B=42.',
+   guidedHint:'42 equals 42, so the answer is 1. Set only bit 0.'},
+  {id:'GT',sym:'A>B?',fn:(a,b)=>a>b?1:0,bit8Fn:()=>0,showBit8:false,
+   explain:'<p>Greater-than: outputs 1 if A is larger than B, 0 otherwise.<\/p><p>Like A==B?, the answer is a single yes/no bit. Set only bit 0 (the rightmost) in the answer row -- 1 for yes, 0 for no. Leave all other bits as 0.<\/p>',
+   exA:10,exB:7,guidedSubtitle:'A=10, B=7.',
+   guidedHint:'10 is greater than 7, so the answer is 1. Set only bit 0.'},
+];
+const GLOSSARY=[
+  {cmd:'MOV Rd, #n',desc:'Loads the literal number n directly into register Rd. No arithmetic -- just writes the value in.',ex:'MOV R0, 14 -- R0 becomes 14'},
+  {cmd:'ADD Rd, Ra, Rb',desc:'Adds Ra and Rb and stores the result in Rd. Ra and Rb are unchanged. Sets carry flag if result > 255.',ex:'ADD R2, R0, R1 -- R2 = R0 + R1'},
+  {cmd:'SUB Rd, Ra, Rb',desc:'Subtracts Rb from Ra and stores the result in Rd. Sets carry flag if Ra < Rb (borrow).',ex:'SUB R2, R0, R1 -- R2 = R0 - R1'},
+  {cmd:'AND Rd, Ra, Rb',desc:'Bitwise AND of Ra and Rb into Rd. Each result bit is 1 only if both Ra and Rb have a 1 in that position.',ex:'AND R2, R0, R1 -- R2 = R0 AND R1'},
+  {cmd:'XOR Rd, Ra, Rb',desc:'Bitwise XOR of Ra and Rb into Rd. Output bit is 1 where they differ, 0 where they match.',ex:'XOR R2, R0, R1 -- R2 = R0 XOR R1'},
+  {cmd:'SHL Rd, 1',desc:'Shifts all bits of Rd one place left. 0 slides in on the right. Leftmost bit falls into carry flag. Net effect: Rd is doubled.',ex:'SHL R2, 1 -- R2 = R2 x 2'},
+  {cmd:'SHR Rd, 1',desc:'Shifts all bits of Rd one place right. 0 slides in on the left. Rightmost bit falls into carry flag. Net effect: Rd is halved (rounded down).',ex:'SHR R2, 1 -- R2 = R2 / 2'},
+  {cmd:'CMP Ra, Rb',desc:'Subtracts Rb from Ra and updates the flags only -- the result is thrown away. Sets zero flag if Ra=Rb; carry flag if Ra<Rb. Always used immediately before a jump.',ex:'CMP R0, R1 -- sets flags based on R0 - R1'},
+  {cmd:'JEQ addr',desc:'Jump if equal: if zero flag is ON (last CMP found equal values), PC jumps to addr. Otherwise continues to next instruction.',ex:'JEQ 0x05 -- PC goes to 0x05 if zero=1'},
+  {cmd:'JNE addr',desc:'Jump if not equal: if zero flag is OFF, PC jumps to addr.',ex:'JNE 0x05 -- PC goes to 0x05 if zero=0'},
+  {cmd:'JGT addr',desc:'Jump if greater: if zero=0 AND carry=0 after a CMP (Ra > Rb), PC jumps to addr.',ex:'JGT 0x05 -- PC goes to 0x05 if R0 > R1'},
+  {cmd:'JLT addr',desc:'Jump if less than: if carry=1 after a CMP (Ra < Rb), PC jumps to addr.',ex:'JLT 0x05 -- PC goes to 0x05 if R0 < R1'},
+  {cmd:'STORE Ra → mem[n]',desc:'Copies Ra into memory slot n. Moves data from a register (inside CPU) out to RAM (outside CPU).',ex:'STORE R2 → mem[0] -- memory slot 0 = R2'},
+  {cmd:'LOAD Rd ← mem[n]',desc:'Reads memory slot n into register Rd. Fetches data from RAM into the register file.',ex:'LOAD R3 ← mem[0] -- R3 = memory slot 0'},
+];
+function numToBits(n){return Array.from({length:8},(_,i)=>(n>>(7-i))&1);}
+function bitsToNum(arr){return arr.reduce((a,b,i)=>a+(b<<(7-i)),0);}
+function toBin8(n){return((n&0xFF)>>>0).toString(2).padStart(8,'0');}
+function rand255(){return Math.floor(Math.random()*256);}
+function hideB(){return['NOT','SHL','SHR'].includes(als.opId);}
+function initAls(opId,mode){
+  const op=ALU_OPS.find(o=>o.id===opId);
+  als.opId=opId;als.mode=mode;als.srcA=null;als.srcB=null;
+  if(mode==='guided'){als.exA=op.exA;als.exB=op.exB;als.aBits=numToBits(op.exA);als.bBits=numToBits(op.exB);}
+  else{als.exA=rand255();als.exB=hideB()?0:rand255();als.aBits=new Array(8).fill(0);als.bBits=new Array(8).fill(0);}
+  als.ansBits=new Array(8).fill(0);als.bit8Ans=0;als.result=null;als.checked=false;
+}
+function generateProgram(){
+  const prog=[],regs=[null,null,null,null];
+  seedVals=[];let addr=0;
+  const seedCount=2+Math.floor(Math.random()*2);
+  for(let i=0;i<seedCount;i++){
+    const v=4+Math.floor(Math.random()*55);regs[i]=v;seedVals[i]=v;
+    const vname2=['a','b','c','d'][i];
+    prog.push({addr:'0x'+addr.toString(16).toUpperCase().padStart(2,'0'),code:'MOV R'+i+', '+v,
+      explain:'Load '+v+' into R'+i+'. This seeds the register with a starting value.',type:'mov',dest:i,val:v,cLine:'int '+vname2+' = '+v+';'});
+    addr++;
+  }
+  const aluIds=['ADD','SUB','AND','XOR','SHL','SHR'];
+  const aluCount=2+Math.floor(Math.random()*2);
+  for(let k=0;k<aluCount;k++){
+    const init=regs.map((v,i)=>v!==null?i:-1).filter(i=>i>=0);
+    const opId=aluIds[Math.floor(Math.random()*aluIds.length)];
+    const srcA=init[Math.floor(Math.random()*init.length)];
+    const noB=['SHL','SHR'],srcB=noB.includes(opId)?null:init[Math.floor(Math.random()*init.length)];
+    const uninit=regs.map((v,i)=>v===null?i:-1).filter(i=>i>=0);
+    const dest=uninit.length>0?uninit[0]:init[Math.floor(Math.random()*init.length)];
+    const aVal=regs[srcA],bVal=srcB!==null?regs[srcB]:0;
+    const ALU=ALU_OPS.find(o=>o.id===opId);
+    regs[dest]=ALU.fn(aVal,bVal);
+    let code,explain;
+    if(noB.includes(opId)){
+      code=opId+' R'+dest+', 1';
+      explain=(opId==='SHL'?'Shift all bits of R'+srcA+' ('+aVal+') one place left into R'+dest+'. Net effect: value is doubled.':'Shift all bits of R'+srcA+' ('+aVal+') one place right into R'+dest+'. Net effect: value is halved.')+' The bit that falls off goes into the carry flag.';
+    } else {
+      code=opId+' R'+dest+', R'+srcA+', R'+srcB;
+      const w={ADD:'Add',SUB:'Subtract',AND:'Bitwise AND of',XOR:'Bitwise XOR of'}[opId];
+      explain=w+' R'+srcA+' ('+aVal+') and R'+srcB+' ('+bVal+'), store result in R'+dest+'. CPU loads R'+srcA+' into A and R'+srcB+' into B in that order.';
+    }
+    const destV=['a','b','c','d'][dest];
+    const srcAV=['a','b','c','d'][srcA];
+    const srcBV=srcB!==null?['a','b','c','d'][srcB]:null;
+    const cOpMap={ADD:'+',SUB:'-',AND:'&',XOR:'^',SHL:'<<',SHR:'>>'}[opId];
+    const cTypeStr=(opId==='SUB')?'int':'unsigned int';
+    const cExprStr=noB.includes(opId)?(opId==='SHL'?srcAV+' << 1':srcAV+' >> 1'):srcAV+' '+cOpMap+' '+srcBV;
+    const cLineStr=cTypeStr+' '+destV+' = '+cExprStr+';';
+    prog.push({addr:'0x'+addr.toString(16).toUpperCase().padStart(2,'0'),code,explain,type:'alu',op:opId,dest,srcA,srcB,cLine:cLineStr});
+    addr++;
+  }
+  const initR=regs.map((v,i)=>v!==null?i:-1).filter(i=>i>=0);
+  if(initR.length>=2&&Math.random()>0.35){
+    const ra=initR[0],rb=initR[1];
+    const conds=['JEQ','JNE','JGT','JLT'],cStr=conds[Math.floor(Math.random()*conds.length)];
+    const jt=addr+2;
+    const cmpVa=['a','b','c','d'][ra],cmpVb=['a','b','c','d'][rb];
+    prog.push({addr:'0x'+addr.toString(16).toUpperCase().padStart(2,'0'),code:'CMP R'+ra+', R'+rb,
+      explain:'Compare R'+ra+' ('+regs[ra]+') with R'+rb+' ('+regs[rb]+') by subtracting. Only flags are updated -- the subtraction result is discarded. Zero flag on if equal; carry on if R'+ra+' < R'+rb+'.',
+      type:'cmp',srcA:ra,srcB:rb,cLine:'// compare: if ('+cmpVa+' ? '+cmpVb+')'});addr++;
+    const aVal=regs[ra],bVal=regs[rb];
+    let wj=false;if(cStr==='JEQ')wj=aVal===bVal;else if(cStr==='JNE')wj=aVal!==bVal;else if(cStr==='JGT')wj=aVal>bVal;else if(cStr==='JLT')wj=aVal<bVal;
+    const cw={JEQ:'equal to',JNE:'not equal to',JGT:'greater than',JLT:'less than'}[cStr];
+    const cr={JEQ:'zero=1',JNE:'zero=0',JGT:'zero=0 AND carry=0',JLT:'carry=1'}[cStr];
+    const cIfOp2={JEQ:'==',JNE:'!=',JGT:'>',JLT:'<'}[cStr];
+    prog.push({addr:'0x'+addr.toString(16).toUpperCase().padStart(2,'0'),code:cStr+' 0x'+jt.toString(16).toUpperCase().padStart(2,'0'),
+      explain:'Jump to 0x'+jt.toString(16).toUpperCase().padStart(2,'0')+' if R'+ra+' is '+cw+' R'+rb+' (condition: '+cr+'). Otherwise continue to next instruction.',
+      type:'jump',cond:cStr.toLowerCase().slice(1),target:jt,willJump:wj,
+      cLine:'if ('+cmpVa+' '+cIfOp2+' '+cmpVb+') {'});addr++;
+    const sd=initR[Math.floor(Math.random()*initR.length)],sv=1+Math.floor(Math.random()*10);
+    prog.push({addr:'0x'+addr.toString(16).toUpperCase().padStart(2,'0'),code:'MOV R'+sd+', '+sv,
+      explain:'Only runs if the jump above did NOT fire. Loads '+sv+' into R'+sd+'.',
+      type:'mov',dest:sd,val:sv,skipped:wj,
+      cLine:'  '+['a','b','c','d'][sd]+' = '+sv+'; // else branch'});addr++;
+  }
+  const finalR=regs.map((v,i)=>v!==null?i:-1).filter(i=>i>=0);
+  const sr=finalR[finalR.length-1];
+  prog.push({addr:'0x'+addr.toString(16).toUpperCase().padStart(2,'0'),
+    code:'STORE R'+sr+' → mem[0]',
+    explain:'Write the final result from R'+sr+' into memory slot 0. This saves the computed value to RAM.',
+    type:'store',src:sr,addr:0,cLine:'mem[0] = '+['a','b','c','d'][sr]+'; // save result'});
+  const aluI=prog.filter(p=>p.type==='alu');
+  hackChallenge=null;
+  if(aluI.length>0){
+    const tgt=aluI[Math.floor(Math.random()*aluI.length)];
+    const alts=['ADD','SUB','AND','XOR'].filter(o=>o!==tgt.op);
+    if(alts.length>0){
+      const ao=alts[Math.floor(Math.random()*alts.length)];
+      const ALT=ALU_OPS.find(o=>o.id===ao);
+      const aV=seedVals[tgt.srcA]??0,bV=tgt.srcB!==null?(seedVals[tgt.srcB]??0):0;
+      const nr=ALT?ALT.fn(aV,bV):0;
+      hackChallenge={instrCode:tgt.code,instrAddr:tgt.addr,altOp:ao,newResult:nr,storeReg:sr,
+        question:'The program above stores a final value in mem[0]. If you changed the instruction at '+tgt.addr+' from '+tgt.op+' to '+ao+' (keeping the same operands), what value would end up in mem[0]? Trace through by hand.',
+        hint:'Change '+tgt.addr+' from '+tgt.op+' to '+ao+'. With A='+aV+' and B='+bV+', '+ao+'('+aV+', '+bV+') = '+nr+'. That new value flows through the rest of the program and ends up stored in mem[0], so the answer is '+nr+'.'};
+    }
+  }
+  return prog;
+}
+function buildCSource(highlightAddr){
+  const lines=PROGRAM.map(p=>{
+    if(!p.cLine)return null;
+    const isHighlight=p.addr===highlightAddr;
+    const bg=isHighlight?'background:#fffbeb;border-left:3px solid #f59e0b;padding-left:6px;':'padding-left:9px;';
+    const col=isHighlight?'color:#92400e;font-weight:700;':'color:#555;';
+    return'<div style="'+bg+col+'font-family:monospace;font-size:11px;line-height:1.8;white-space:pre">'+escHtml(p.cLine)+'<\/div>';
+  }).filter(Boolean);
+  // wrap in a closing brace if we have a jump (if statement)
+  const hasJump=PROGRAM.some(p=>p.type==='jump');
+  if(hasJump) lines.splice(lines.length-1,0,'<div style="padding-left:9px;color:#555;font-family:monospace;font-size:11px;line-height:1.8">}<\/div>');
+  return lines.join('');
+}
+function escHtml(s){var r=s.replace(/&/g,'&amp;');r=r.replace(/[<]/g,'&lt;');r=r.replace(/[>]/g,'&gt;');return r;}
+
+PROGRAM=generateProgram();
+function selectPane(id){
+  currentPane=id;
+  ['alu','regs','flags','mem','cu'].forEach(k=>{const el=document.getElementById('map-'+k);if(el)el.classList.toggle('active',k===id);});
+  renderPane();
+}
+function renderPane(){
+  const p=document.getElementById('cpu-pane');
+  if(currentPane==='alu')p.innerHTML=buildAluPane();
+  else if(currentPane==='regs')p.innerHTML=buildRegsPane();
+  else if(currentPane==='flags')p.innerHTML=buildFlagsPane();
+  else if(currentPane==='mem')p.innerHTML=buildMemPane();
+  else if(currentPane==='cu')p.innerHTML=buildCUPane();
+  bindEvents();
+  const gs=document.getElementById('glossary-sel');if(gs)gs.addEventListener('change',showGlossaryEntry);
+  const hi=document.getElementById('hack-ans');if(hi)hi.addEventListener('keydown',e=>{if(e.key==='Enter')checkHack();});
+  const bnp=document.getElementById('btn-new-prog');if(bnp)bnp.addEventListener('click',newProgram);
+  const mt=document.getElementById('monitor-toggle');
+  if(mt)mt.addEventListener('click',()=>{
+    monitorOpen=!monitorOpen;
+    const body=document.getElementById('monitor-body');
+    const caret=document.getElementById('monitor-caret');
+    if(body)body.style.display=monitorOpen?'block':'none';
+    if(caret)caret.innerHTML=monitorOpen?'&#x25B2;':'&#x25BC;';
+  });
+  const bhp=document.getElementById('btn-hack-prog');if(bhp)bhp.addEventListener('click',()=>{
+    const sec=document.getElementById('hack-section');
+    if(sec){sec.innerHTML=buildHackChallenge();
+      const hi=sec.querySelector('#hack-ans');if(hi)hi.addEventListener('keydown',e=>{if(e.key==='Enter')checkHack();});
+      const bc=sec.querySelector('button[onclick]');
+      sec.querySelectorAll('button').forEach(b=>{
+        if(b.textContent.includes('Check'))b.addEventListener('click',checkHack);
+        if(b.textContent.includes('Reveal'))b.addEventListener('click',()=>{hackRevealed=true;const s=document.getElementById('hack-section');if(s)s.innerHTML=buildHackChallenge();});
+      });
+    }
+    bhp.style.display='none';
+  });
+}
+function buildAluPane(){
+  const op=ALU_OPS.find(o=>o.id===als.opId);
+  const isFree=als.mode==='free',hB=hideB(),show8=op.showBit8,fromCU=als.srcA!==null;
+  const opBtns=ALU_OPS.map(o=>'<button class="op-btn'+(o.id===als.opId?' active':'')+'" data-op="'+o.id+'">'+o.sym+'<\/button>').join('');
+  const modeBtns=!fromCU?'<div class="mode-toggle"><button class="mode-btn'+(!isFree?' active':'')+'" data-mode="guided">Guided example<\/button><button class="mode-btn'+(isFree?' active':'')+'" data-mode="free">Free practice<\/button><\/div>':'';
+  let subtitle='';
+  if(fromCU)subtitle='<div class="fetch-notice">Inputs loaded from registers: <strong>A = '+als.exA+'<\/strong> (R'+als.srcA+')'+(als.srcB!==null?', <strong>B = '+als.exB+'<\/strong> (R'+als.srcB+')':' -- B not used')+'<\/div>';
+  else if(isFree)subtitle='<div class="wb-sub">Free practice -- build A'+(hB?'':' and B')+' in binary to match the targets, then work out the answer.<\/div>';
+  else subtitle='<div class="wb-sub">'+op.guidedSubtitle+'<\/div>';
+  const posRow='<div class="wb-header-wrap"><div class="wb-header-spacer"><\/div><div class="wb-header-grid"><div class="wb-header-cell"><\/div><div class="wb-header-cell">'+(isFree&&!fromCU?'target':'')+'<\/div><div><\/div><div class="wb-header-cell" style="color:'+(show8?'var(--text-warning)':'var(--text-muted)')+'">'+(show8?'C':'')+'<\/div>'+Array.from({length:8},(_,i)=>'<div class="wb-header-cell">'+(7-i)+'<\/div>').join('')+'<div class="wb-header-cell">total<\/div><\/div><\/div>';
+  const aRO=!isFree||fromCU,bRO=!isFree||fromCU;
+  const rowA=buildWbRow('a',aRO?numToBits(als.exA):als.aBits,aRO,als.exA,false,show8,false,isFree&&!fromCU);
+  const rowB=buildWbRow('b',bRO?numToBits(als.exB):als.bBits,bRO,als.exB,hB,show8,false,isFree&&!fromCU&&!hB);
+  const rowAns=buildWbRow('ans',als.ansBits,false,null,false,show8,true,false);
+  const flagsHtml=buildFlagsPanel();
+  const saveHtml=!fromCU?'<div class="save-row"><span class="save-label">Save result to:<\/span><select class="reg-select" id="dest-reg">'+REG_NAMES.map((n,i)=>'<option value="'+i+'"'+(i===als.destReg?' selected':'')+'>'+n+'<\/option>').join('')+'<\/select><button class="btn-save" id="btn-save"'+(als.checked?'':' disabled')+'>Write to register<\/button><span class="save-conf" id="save-conf"><\/span><\/div>':'<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Return to the control unit to write this result to the destination register.<\/div>';
+  const explainBox='<div class="explain-box"><div class="explain-toggle" onclick="toggleExplain(this)"><span>Explanation<\/span><span class="explain-caret">&#x25BC;<\/span><\/div><div class="explain-body">'+op.explain+'<\/div><\/div>';
+  return'<div class="pane-header"><div class="pane-title">ALU<\/div><div class="pane-subtitle">Arithmetic logic unit<\/div><\/div><div class="op-grid">'+opBtns+'<\/div>'+modeBtns+explainBox+'<div class="wb">'+subtitle+posRow+rowA+rowB+'<div class="wb-divider"><\/div><div style="font-size:10px;color:var(--text-secondary);margin-bottom:5px">Your answer:<\/div>'+rowAns+'<div class="wb-actions"><button class="btn-check" id="btn-check-alu">Check<\/button><button class="btn-reveal" id="btn-reveal-alu"'+(isFree&&!fromCU?' style="display:none"':'')+'>Reveal<\/button><button class="btn-reset-ans" id="btn-reset-alu">Clear<\/button><span id="wb-result"><\/span><\/div><div class="wb-hint" id="wb-hint"><\/div><\/div>'+flagsHtml+saveHtml;
+}
+function buildWbRow(prefix,bits,readonly,target,hidden,show8,isAns,showRand){
+  if(hidden)return'<div id="wb-row-'+prefix+'" style="display:none"><\/div>';
+  const label={a:'A',b:'B',ans:'='}[prefix];
+  const randBtn=showRand?'<button class="wb-rand-btn" id="rand-'+prefix+'">&#x27F3;<\/button>':'<div class="wb-rand-btn invisible"><\/div>';
+  const leftBox=isAns?'<div class="wb-tally" style="visibility:hidden">0<\/div>':'<div class="wb-target" id="wb-target-'+prefix+'">'+(target!=null?target:0)+'<\/div>';
+  const bit8El=show8?(isAns?'<div class="wb-bit8 clickable" id="wb-bit8-ans">0<\/div>':'<div class="wb-bit8" style="opacity:.2">0<\/div>'):'<div><\/div>';
+  const cells=bits.map((b,i)=>'<div class="bit-cell'+(b?' on':'')+(readonly?' readonly':'')+'" id="wb-'+prefix+'-bit-'+i+'"'+(readonly?'':' data-prefix="'+prefix+'" data-idx="'+i+'"')+'>'+b+'<\/div>').join('');
+  const rightBox=isAns?'<div class="wb-tally" id="wb-tally-ans">0<\/div>':(readonly?'<div class="wb-tally match" id="wb-tally-'+prefix+'">'+(target!=null?target:0)+'<\/div>':'<div class="wb-tally" id="wb-tally-'+prefix+'">0<\/div>');
+  return'<div class="wb-row-wrap" id="wb-row-'+prefix+'"><div class="wb-row-label">'+label+'<\/div><div class="wb-grid">'+randBtn+leftBox+'<div class="wb-ellipsis">...<\/div>'+bit8El+cells+rightBox+'<\/div><\/div>';
+}
+function buildFlagsPanel(){
+  const f=cpu.flags;
+  return'<div class="flags-panel"><div class="flags-panel-title">Flags register -- written by ALU, read by control unit for jumps<\/div><div class="flags-row">'+[{n:'Zero',v:f.zero,w:f.zero?'Result was 0':'Result not 0'},{n:'Carry',v:f.bit8,w:f.bit8?'Result spilled past 8 bits (= 256)':'Result fit in 8 bits'},{n:'Bit 7',v:f.bit7,w:f.bit7?'Leftmost bit is 1':'Leftmost bit is 0'}].map(x=>'<div class="flag-block'+(x.v?' set':'')+'"><div class="flag-block-name">'+x.n+'<\/div><div class="flag-block-val">'+x.v+'<\/div><div class="flag-block-why">'+x.w+'<\/div><\/div>').join('')+'<\/div><\/div>';
+}
+function updateTally(prefix){
+  if(prefix==='ans'){const el=document.getElementById('wb-tally-ans');if(el)el.textContent=als.bit8Ans*256+bitsToNum(als.ansBits);}
+  else{const arr=prefix==='a'?als.aBits:als.bBits,target=prefix==='a'?als.exA:als.exB,val=bitsToNum(arr),el=document.getElementById('wb-tally-'+prefix);if(el){el.textContent=val;el.classList.toggle('match',val===target);}}
+}
+function checkAlu(){
+  const op=ALU_OPS.find(o=>o.id===als.opId);
+  if(als.mode==='free'&&als.srcA===null){
+    const aOk=bitsToNum(als.aBits)===als.exA,bOk=hideB()||bitsToNum(als.bBits)===als.exB;
+    if(!aOk||!bOk){const r=document.getElementById('wb-result');if(r)r.innerHTML='<span class="wb-result bad">Set '+(aOk?'':'A')+((!aOk&&!bOk)?' and ':'')+(bOk?'':'B')+' to match the target first.<\/span>';return;}
+  }
+  const correct=numToBits(op.fn(als.exA,als.exB)),correctB8=op.bit8Fn(als.exA,als.exB);
+  let allOk=true;
+  correct.forEach((b,i)=>{const c=document.getElementById('wb-ans-bit-'+i);if(!c)return;c.classList.remove('correct','wrong','reveal');const ok=als.ansBits[i]===b;c.classList.add(ok?'correct':'wrong');if(!ok)allOk=false;});
+  let b8ok=true;
+  if(op.showBit8){const b8=document.getElementById('wb-bit8-ans');if(b8){b8ok=als.bit8Ans===correctB8;b8.style.background=b8ok?'var(--bg-success)':'var(--bg-danger)';b8.style.borderColor=b8ok?'var(--border-success)':'var(--border-danger)';b8.style.color=b8ok?'var(--text-success)':'var(--text-danger)';b8.style.borderStyle='solid';if(!b8ok)allOk=false;}}
+  if(allOk){als.result=op.fn(als.exA,als.exB);als.checked=true;setFlags(als.result,correctB8);const sb=document.getElementById('btn-save');if(sb)sb.disabled=false;}
+  const r=document.getElementById('wb-result');if(r)r.innerHTML='<span class="wb-result '+(allOk?'ok':'bad')+'">'+(allOk?'Correct!':'Not quite')+'<\/span>';
+}
+function revealAlu(){
+  const op=ALU_OPS.find(o=>o.id===als.opId);
+  const correct=numToBits(op.fn(als.exA,als.exB)),correctB8=op.bit8Fn(als.exA,als.exB);
+  als.ansBits=[...correct];als.bit8Ans=correctB8;
+  correct.forEach((b,i)=>{const c=document.getElementById('wb-ans-bit-'+i);if(!c)return;c.textContent=b;c.classList.remove('on','correct','wrong');c.classList.add('reveal');});
+  if(op.showBit8){const b8=document.getElementById('wb-bit8-ans');if(b8){b8.textContent=correctB8;b8.classList.remove('correct','wrong');b8.classList.add('reveal');b8.style.background='var(--bg-warning)';b8.style.borderColor='var(--border-warning)';b8.style.color='var(--text-warning)';b8.style.borderStyle='solid';}}
+  const tally=document.getElementById('wb-tally-ans');if(tally)tally.textContent=correctB8*256+bitsToNum(correct);
+  als.result=op.fn(als.exA,als.exB);als.checked=true;setFlags(als.result,correctB8);
+  const sb=document.getElementById('btn-save');if(sb)sb.disabled=false;
+  const hint=document.getElementById('wb-hint');if(hint){hint.textContent=als.mode==='guided'?op.guidedHint:'Result: '+als.result+' = '+toBin8(als.result)+'. Carry: '+als.bit8Ans+'.';hint.style.display='block';}
+}
+function resetAns(){
+  als.ansBits=new Array(8).fill(0);als.bit8Ans=0;als.result=null;als.checked=false;
+  for(let i=0;i<8;i++){const c=document.getElementById('wb-ans-bit-'+i);if(c){c.textContent='0';c.classList.remove('on','correct','wrong','reveal');c.style.background='';c.style.borderColor='';c.style.color='';}}
+  const b8=document.getElementById('wb-bit8-ans');if(b8){b8.textContent='0';b8.classList.remove('on','correct','wrong','reveal');b8.style.background='';b8.style.borderColor='';b8.style.color='';b8.style.borderStyle='dashed';}
+  const tally=document.getElementById('wb-tally-ans');if(tally)tally.textContent='0';
+  const sb=document.getElementById('btn-save');if(sb)sb.disabled=true;
+  const r=document.getElementById('wb-result');if(r)r.innerHTML='';
+  const hint=document.getElementById('wb-hint');if(hint)hint.style.display='none';
+}
+function saveToReg(){
+  if(als.result===null)return;
+  const sel=document.getElementById('dest-reg');const dest=sel?parseInt(sel.value):als.destReg;
+  als.destReg=dest;cpu.regs[dest]=als.result;updateMapRegs(dest);
+  const conf=document.getElementById('save-conf');if(conf){conf.textContent='Written to R'+dest+' ('+als.result+')';conf.style.display='inline';}
+}
+function setFlags(result,b8){cpu.flags.zero=result===0?1:0;cpu.flags.bit8=b8;cpu.flags.bit7=(result&0x80)?1:0;updateMapFlags();}
+function toggleExplain(toggle){
+  const body=toggle.nextElementSibling;const caret=toggle.querySelector('.explain-caret');
+  const open=body.classList.toggle('open');caret.innerHTML=open?'&#x25B2;':'&#x25BC;';
+}
+function bindEvents(){
+  if(currentPane!=='alu')return;
+  document.querySelectorAll('[data-op]').forEach(btn=>btn.addEventListener('click',()=>{initAls(btn.dataset.op,als.mode);renderPane();}));
+  document.querySelectorAll('[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{initAls(als.opId,btn.dataset.mode);renderPane();}));
+  document.querySelectorAll('.bit-cell:not(.readonly)[data-prefix]').forEach(cell=>{
+    cell.addEventListener('click',()=>{
+      const prefix=cell.dataset.prefix,idx=parseInt(cell.dataset.idx);
+      if(prefix==='ans'){als.ansBits[idx]^=1;cell.textContent=als.ansBits[idx];cell.classList.toggle('on',als.ansBits[idx]===1);cell.classList.remove('correct','wrong','reveal');updateTally('ans');}
+      else if(prefix==='a'){als.aBits[idx]^=1;cell.textContent=als.aBits[idx];cell.classList.toggle('on',als.aBits[idx]===1);updateTally('a');}
+      else if(prefix==='b'){als.bBits[idx]^=1;cell.textContent=als.bBits[idx];cell.classList.toggle('on',als.bBits[idx]===1);updateTally('b');}
+      const r=document.getElementById('wb-result');if(r)r.innerHTML='';
+    });
+  });
+  const b8=document.getElementById('wb-bit8-ans');
+  if(b8)b8.addEventListener('click',()=>{als.bit8Ans^=1;b8.textContent=als.bit8Ans;b8.classList.toggle('on',als.bit8Ans===1);updateTally('ans');const r=document.getElementById('wb-result');if(r)r.innerHTML='';});
+  ['a','b'].forEach(p=>{
+    const btn=document.getElementById('rand-'+p);if(!btn)return;
+    btn.addEventListener('click',()=>{
+      const val=rand255();if(p==='a'){als.exA=val;als.aBits=new Array(8).fill(0);}else{als.exB=val;als.bBits=new Array(8).fill(0);}
+      const tgt=document.getElementById('wb-target-'+p);if(tgt)tgt.textContent=val;
+      for(let i=0;i<8;i++){const c=document.getElementById('wb-'+p+'-bit-'+i);if(c){c.textContent='0';c.classList.remove('on','correct','wrong','reveal');}}
+      const tally=document.getElementById('wb-tally-'+p);if(tally){tally.textContent='0';tally.classList.remove('match');}
+      resetAns();
+      const op=ALU_OPS.find(o=>o.id===als.opId);
+      const hint=document.getElementById('wb-hint');if(hint)hint.textContent='Answer: '+op.fn(als.exA,als.exB)+(op.showBit8&&op.bit8Fn(als.exA,als.exB)?' with carry ON':'')+'.'
+    });
+  });
+  const chk=document.getElementById('btn-check-alu');if(chk)chk.addEventListener('click',checkAlu);
+  const rev=document.getElementById('btn-reveal-alu');if(rev)rev.addEventListener('click',revealAlu);
+  const clr=document.getElementById('btn-reset-alu');if(clr)clr.addEventListener('click',resetAns);
+  const sv=document.getElementById('btn-save');if(sv)sv.addEventListener('click',saveToReg);
+  const ds=document.getElementById('dest-reg');if(ds)ds.addEventListener('change',()=>als.destReg=parseInt(ds.value));
+}
+function buildRegsPane(){
+  return'<div class="pane-header"><div class="pane-title">Registers<\/div><div class="pane-subtitle">The CPU\'s four fast scratch-paper slots<\/div><\/div>'
+    +'<div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.6">Registers hold the values currently being worked on. Only four exist. When you need to free one up, STORE its value to memory and LOAD it back later.<\/div>'
+    +cpu.regs.map((v,i)=>'<div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:0.5px solid var(--border)"><div style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--text-accent);min-width:26px">R'+i+'<\/div><div style="font-family:var(--font-mono);font-size:22px;font-weight:700;min-width:40px">'+v+'<\/div><div style="font-family:var(--font-mono);font-size:13px;color:var(--text-secondary)">'+toBin8(v)+'<\/div><div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">0x'+v.toString(16).toUpperCase().padStart(2,'0')+'<\/div><\/div>').join('');
+}
+function buildFlagsPane(){
+  return'<div class="pane-header"><div class="pane-title">Flags register<\/div><div class="pane-subtitle">Set by the ALU -- read by the control unit for jumps<\/div><\/div>'
+    +'<div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.6">The flags register is overwritten after every ALU operation. Jump instructions do not look at R0-R3 -- they look here.<\/div>'
+    +[{n:'Zero',v:cpu.flags.zero,desc:'Turns on when the 8-bit result was exactly 0. Checked by JEQ and JNE.'},
+      {n:'Carry',v:cpu.flags.bit8,desc:'Turns on when the result did not fit in 8 bits -- a ninth bit spilled over, worth 256. Called carry because it is the digit you carry into the next column in addition, just like in long-hand arithmetic. Checked by JLT.'},
+      {n:'Bit 7',v:cpu.flags.bit7,desc:'Reports whether the leftmost of the 8 result bits is 1. The CPU does not decide what that means -- the program does. In a signed system bit 7 = 1 signals a negative number; in an unsigned system it is just a large value.'}
+     ].map(f=>'<div style="display:flex;gap:14px;align-items:flex-start;padding:11px 0;border-bottom:0.5px solid var(--border)"><div style="min-width:54px;text-align:center"><div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-accent)">'+f.n+'<\/div><div style="font-family:var(--font-mono);font-size:28px;font-weight:700;color:'+(f.v?'var(--text-success)':'var(--text-muted)')+'">'+f.v+'<\/div><\/div><div style="font-size:13px;color:var(--text-secondary);line-height:1.6;padding-top:2px">'+f.desc+'<\/div><\/div>').join('');
+}
+function buildMemPane(){
+  const cells=cpu.mem.map((v,i)=>{
+    const hex=v.toString(16).toUpperCase().padStart(2,'0');
+    return'<div class="mem-cell'+(v?' nz':'')+'" id="mc-'+i+'" onclick="inspectMem('+i+')">'+(v?hex:'00')+'<\/div>';
+  }).join('');
+  return'<div class="pane-header"><div class="pane-title">Memory (RAM)<\/div><div class="pane-subtitle">32 slots -- outside the CPU, accessed by STORE and LOAD only<\/div><\/div>'
+    +'<div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.6">The CPU cannot operate directly on values in RAM. It must LOAD them into a register first, work on them, then STORE them back if needed.<\/div>'
+    +'<div class="mem-grid">'+cells+'<\/div>'
+    +'<div id="mem-detail" style="margin-top:10px;min-height:56px"><\/div>'
+    +'<div style="margin-top:4px;font-size:11px;color:var(--text-muted)">Click any slot to inspect its value.<\/div>';
+}
+function inspectMem(i){
+  const v=cpu.mem[i];
+  document.querySelectorAll('.mem-cell').forEach(c=>{c.style.borderColor='';c.style.background='';});
+  const cell=document.getElementById('mc-'+i);
+  if(cell){cell.style.borderColor='var(--fill-accent)';cell.style.background=v?'var(--bg-accent)':'var(--surface-2)';}
+  const d=document.getElementById('mem-detail');if(!d)return;
+  d.innerHTML='<div style="background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:9px 12px;font-size:12px;color:var(--text-accent);line-height:1.7">'
+    +'<strong>Slot '+i+'<\/strong><br>'
+    +'Decimal: <strong>'+v+'<\/strong><br>'
+    +'Binary: <strong>'+toBin8(v)+'<\/strong><br>'
+    +'Hex: <strong>0x'+v.toString(16).toUpperCase().padStart(2,'0')+'<\/strong>'
+    +'<\/div>';
+}
+function buildCUPane(){
+  if(cuStep>=PROGRAM.length)return buildCUComplete();
+  const instr=PROGRAM[cuStep],pcHex=instr.addr;
+  const isAlu=instr.type==='alu',aluReady=isAlu&&als.checked&&als.srcA===instr.srcA;
+  let sBg='var(--bg-accent)',sBo='var(--border-accent)',sCol='var(--text-accent)',sMsg='';
+  if(instr.type==='mov')sMsg='Read what this instruction does, then click <strong>Execute<\/strong>.';
+  else if(instr.type==='alu'){
+    if(!aluReady){sMsg='<strong>Step 1:<\/strong> Go to the <strong>ALU<\/strong> pane, solve the workbench, click Check.<br><strong>Step 2:<\/strong> Return here -- Execute will unlock.';sBg='var(--bg-warning)';sBo='var(--border-warning)';sCol='var(--text-warning)';}
+    else sMsg='ALU done. Click <strong>Execute<\/strong> to write to R'+instr.dest+' and update flags.';
+  }
+  else if(instr.type==='cmp')sMsg='CMP updates flags only. Click <strong>Execute<\/strong> and watch the flags update.';
+  else if(instr.type==='jump')sMsg='Check the flags and decision below, then click <strong>Execute<\/strong>.';
+  else sMsg='Click <strong>Execute<\/strong> to update memory and registers.';
+  let fetchHtml='';
+  if(instr.type==='alu'||instr.type==='cmp'){
+    const aVal=cpu.regs[instr.srcA],bVal=instr.srcB!=null?cpu.regs[instr.srcB]:null;
+    fetchHtml='<div style="margin-top:8px;margin-bottom:4px;font-size:11px;color:var(--text-secondary);font-weight:600">Operands fetched from register file:<\/div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<span style="padding:3px 10px;border-radius:var(--radius);font-size:11px;font-family:var(--font-mono);border:0.5px solid var(--border-accent);background:var(--bg-accent);color:var(--text-accent)">A ← R'+instr.srcA+' = '+aVal+'<\/span>'
+      +(bVal!==null?'<span style="padding:3px 10px;border-radius:var(--radius);font-size:11px;font-family:var(--font-mono);border:0.5px solid var(--border-accent);background:var(--bg-accent);color:var(--text-accent)">B ← R'+instr.srcB+' = '+bVal+'<\/span>':'<span style="font-size:11px;color:var(--text-muted)">B not used<\/span>')
+      +'<\/div>';
+  }
+  let jumpHtml='';
+  if(instr.type==='jump'){
+    const f=cpu.flags;let jump=false;
+    if(instr.cond==='eq')jump=f.zero===1;else if(instr.cond==='ne')jump=f.zero===0;
+    else if(instr.cond==='gt')jump=f.zero===0&&f.bit8===0;else if(instr.cond==='lt')jump=f.bit8===1;
+    const cr={eq:'Zero=1 (values equal)',ne:'Zero=0 (values differ)',gt:'Zero=0 AND Carry=0 (Ra > Rb)',lt:'Carry=1 (Ra < Rb)'}[instr.cond];
+    jumpHtml='<div style="background:var(--bg-warning);border:0.5px solid var(--border-warning);border-radius:var(--radius);padding:10px 12px;margin-top:8px;font-size:12px;color:var(--text-warning);line-height:1.7">'
+      +'<strong>Condition required:<\/strong> '+cr+'<br>'
+      +'<strong>Current flags<\/strong> -- Zero: '+f.zero+', Carry: '+f.bit8+'<br>'
+      +'<strong>Decision: '+(jump?'Jump fires → PC goes to '+instr.code.split(' ').pop():'No jump → PC continues to next instruction')+'<\/strong><\/div>';
+  }
+  const execDisabled=isAlu&&!aluReady;
+  const execBtn='<button style="margin-top:10px;padding:7px 18px;border-radius:var(--radius);border:none;background:'+(execDisabled?'#cbd5e1':'var(--fill-accent)')+';color:#fff;font-size:13px;font-weight:500;cursor:'+(execDisabled?'default':'pointer')+'"'+(execDisabled?' disabled':'')+' onclick="executeCUStep()">&#9654; Execute<\/button>'
+    +(execDisabled?'<div style="font-size:10px;color:var(--text-muted);margin-top:5px">Go to the ALU, solve the workbench, then return here.<\/div>':'');
+  const upcoming=PROGRAM.slice(cuStep+1,cuStep+4).map(p=>'<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);padding:3px 0;border-bottom:0.5px solid var(--border)">'+p.addr+'  '+p.code+(p.skipped?' <em style="font-size:10px">[skipped if jump fires]<\/em>':'')+'<\/div>').join('');
+  const logHtml='<div style="font-family:var(--font-mono);font-size:10px;background:var(--surface-0);border:0.5px solid var(--border);border-radius:var(--radius);padding:7px;height:55px;overflow-y:auto;color:var(--text-secondary);margin-top:8px">'+cuLog.map(l=>'<div style="color:'+(l.cls==='ok'?'var(--text-success)':l.cls==='warn'?'var(--text-warning)':'var(--text-accent)')+'">'+l.msg+'<\/div>').join('')+'<\/div>';
+
+  // Monitor panel - collapsible C source
+  const monitorHtml='<div style="background:#1e1e1e;border-radius:var(--radius);margin-bottom:10px;overflow:hidden;border:0.5px solid #333">'
+    +'<div id="monitor-toggle" style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;cursor:pointer;user-select:none">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<div style="display:flex;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"><\/div><div style="width:10px;height:10px;border-radius:50%;background:#febc2e"><\/div><div style="width:10px;height:10px;border-radius:50%;background:#28c840"><\/div><\/div>'
+        +'<span style="color:#aaa;font-size:11px;font-family:monospace">program.c<\/span>'
+      +'<\/div>'
+      +'<span id="monitor-caret" style="color:#aaa;font-size:10px">'+(monitorOpen?'&#x25B2;':'&#x25BC;')+'<\/span>'
+    +'<\/div>'
+    +'<div id="monitor-body" style="display:'+(monitorOpen?'block':'none')+';padding:8px 10px;border-top:0.5px solid #333">'
+      +buildCSource(pcHex)
+    +'<\/div>'
+  +'<\/div>';
+
+  return'<div class="pane-header"><div class="pane-title">Control unit<\/div><div class="pane-subtitle">Fetch → decode → execute<\/div><\/div>'
+    +monitorHtml
+    +'<div style="background:'+sBg+';border:0.5px solid '+sBo+';border-radius:var(--radius);padding:9px 12px;margin-bottom:10px;font-size:12px;color:'+sCol+';line-height:1.65">'+sMsg+'<\/div>'
+    +'<div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Current -- '+pcHex+'<\/div>'
+      +'<div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text-accent);margin-bottom:4px">'+instr.code+'<\/div>'
+      +'<div style="font-size:12px;color:var(--text-secondary);line-height:1.55">'+instr.explain+'<\/div>'
+      +fetchHtml+jumpHtml+execBtn
+    +'<\/div>'
+    +(upcoming?'<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Coming up<\/div>'+upcoming+'<\/div>':'')
+    +logHtml
+    +buildGlossary();
+}
+function buildCUComplete(){
+  const hackShown=document.getElementById('hack-section')!==null;
+  const lastAddr=PROGRAM[PROGRAM.length-1].addr;
+  const monitorComplete='<div style="background:#1e1e1e;border-radius:var(--radius);margin-bottom:10px;overflow:hidden;border:0.5px solid #333"><div id="monitor-toggle" style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;cursor:pointer;user-select:none"><div style="display:flex;align-items:center;gap:8px"><div style="display:flex;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"><\/div><div style="width:10px;height:10px;border-radius:50%;background:#febc2e"><\/div><div style="width:10px;height:10px;border-radius:50%;background:#28c840"><\/div><\/div><span style="color:#aaa;font-size:11px;font-family:monospace">program.c<\/span><\/div><span id="monitor-caret" style="color:#aaa;font-size:10px">'+(monitorOpen?'&#x25B2;':'&#x25BC;')+'<\/span><\/div><div id="monitor-body" style="display:'+(monitorOpen?'block':'none')+';padding:8px 10px;border-top:0.5px solid #333">'+buildCSource(lastAddr)+'<\/div><\/div>';
+  return'<div class="pane-header"><div class="pane-title">Control unit<\/div><div class="pane-subtitle">Program complete<\/div><\/div>'
+    +buildDifficultySelector()
+    +monitorComplete
+    +'<div style="background:var(--bg-success);border:0.5px solid var(--border-success);border-radius:var(--radius);padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--text-success);line-height:1.6"><strong>All instructions executed.<\/strong> The final value is in mem[0] \u2014 click Memory on the left to see it.<\/div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:14px">'
+      +'<button id="btn-hack-prog" style="padding:7px 16px;border-radius:var(--radius);border:none;background:var(--bg-warning);color:var(--text-warning);font-size:12px;font-weight:600;cursor:pointer;border:0.5px solid var(--border-warning)">&#9881; Hack this program<\/button>'
+      +'<button style="padding:7px 16px;border-radius:var(--radius);border:none;background:var(--fill-accent);color:#fff;font-size:12px;font-weight:500;cursor:pointer" onclick="newProgram()">&#8635; New program<\/button>'
+    +'<\/div>'
+    +'<div id="hack-section"><\/div>'
+    +buildGlossary();
+}
+function buildGlossary(){
+  return'<div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:8px;padding:12px;margin-top:8px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px">Instruction reference<\/div>'
+    +'<select id="glossary-sel" style="width:100%;padding:6px 9px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:12px;font-family:var(--font-mono);margin-bottom:8px">'
+      +'<option value="">Select an instruction to see what it does...<\/option>'
+      +GLOSSARY.map((g,i)=>'<option value="'+i+'">'+g.cmd+'<\/option>').join('')
+    +'<\/select>'
+    +'<div id="glossary-body" style="font-size:12px;color:var(--text-secondary);line-height:1.6;min-height:36px"><\/div>'
+    +'<\/div>';
+}
+function showGlossaryEntry(){
+  const sel=document.getElementById('glossary-sel'),body=document.getElementById('glossary-body');
+  if(!sel||!body||sel.value===''){if(body)body.innerHTML='';return;}
+  const g=GLOSSARY[parseInt(sel.value)];if(!g)return;
+  body.innerHTML='<div style="margin-bottom:5px">'+g.desc+'<\/div><div style="font-family:var(--font-mono);font-size:11px;color:var(--text-accent);background:var(--bg-accent);border-radius:4px;padding:4px 8px">'+g.ex+'<\/div>';
+}
+function primeAluForNext(){
+  if(cuStep>=PROGRAM.length)return;
+  const next=PROGRAM[cuStep];
+  if(next.type==='alu'){
+    als.opId=next.op;als.srcA=next.srcA;als.srcB=next.srcB!=null?next.srcB:null;
+    als.exA=cpu.regs[next.srcA];als.exB=als.srcB!==null?cpu.regs[als.srcB]:0;
+    als.aBits=numToBits(als.exA);als.bBits=numToBits(als.exB);
+    als.ansBits=new Array(8).fill(0);als.bit8Ans=0;als.result=null;als.checked=false;
+    als.destReg=next.dest;als.mode='guided';
+  }
+}
+function cuLogAdd(msg,cls){cuLog.push({msg,cls});if(cuLog.length>30)cuLog.shift();}
+function updateMapRegs(highlight){
+  cpu.regs.forEach((v,i)=>{const el=document.getElementById('rval-'+i);if(el)el.textContent=v;});
+  if(highlight!==undefined){const chip=document.getElementById('rchip-'+highlight);if(chip){chip.classList.add('wrote');setTimeout(()=>chip.classList.remove('wrote'),1500);}}
+}
+function updateMapFlags(){
+  const z=document.getElementById('fchip-zero'),b8=document.getElementById('fchip-bit8'),b7=document.getElementById('fchip-bit7');
+  if(z){z.textContent='Zero:'+cpu.flags.zero;z.classList.toggle('set',cpu.flags.zero===1);}
+  if(b8){b8.textContent='Carry:'+cpu.flags.bit8;b8.classList.toggle('set',cpu.flags.bit8===1);}
+  if(b7){b7.textContent='Bit7:'+cpu.flags.bit7;b7.classList.toggle('set',cpu.flags.bit7===1);}
+}
+function updateMapMem(){
+  const mini=document.getElementById('map-mem-mini');
+  if(mini)mini.innerHTML=cpu.mem.map(v=>'<div class="mem-mini-cell'+(v?' nz':'')+'"><\/div>').join('');
+}
+function buildWelcomeContent(){
+  var pane=document.getElementById('cpu-pane');
+  if(!pane)return;
+  var h='';
+  h+='<div class="pane-header"><div class="pane-title">Virtual CPU<\/div>';
+  h+='<div class="pane-subtitle">A hands-on computer for aspiring ethical hackers<\/div><\/div>';
+  h+='<div style="font-size:13px;color:var(--text-secondary);line-height:1.8;max-width:520px">';
+  h+='<div style="background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:11px 14px;margin-bottom:14px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text-accent);margin-bottom:6px">What this is for<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-accent);line-height:1.7">Ethical hackers and CTF competitors need to understand what the CPU is actually doing. Most security vulnerabilities happen at the level of individual instructions, registers, and memory. This app builds that foundation from the ground up.<\/div>';
+  h+='<\/div>';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px;margin-top:4px">How it works<\/div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
+  h+='<div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">1<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>ALU<\/strong> &mdash; start here. Work through binary arithmetic bit by bit, with carry flag and flags register.<\/div><\/div>';
+  h+='<div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">2<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>Registers, Flags, Memory<\/strong> &mdash; inspect CPU state and see how values move between registers and RAM.<\/div><\/div>';
+  h+='<div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">3<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>Control unit<\/strong> &mdash; step through a generated assembly program. When done, try the hack challenge: change an instruction and predict the new output.<\/div><\/div>';
+  h+='<\/div>';
+  h+='<div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 14px;margin-bottom:14px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:6px">About the monitor<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.7">The dark panel in the control unit shows the program written in <strong>C<\/strong>. Assembly is what the CPU actually runs; C is a higher-level language a compiler translates into those instructions. The highlighted line shows which C statement produced the current instruction &mdash; the same relationship you encounter in real CTF reverse engineering.<\/div>';
+  h+='<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-muted);line-height:1.6">The assembly here is a simplified teaching version. The concepts &mdash; registers, flags, jumps, memory &mdash; are universal across x86, ARM, and every other architecture.<\/div>';
+  h+='<div style="margin-top:16px;padding:10px 14px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);font-size:12px">';
+  h+='<span style="color:var(--text-muted)">New to ethical hacking? </span>';
+  h+='<a href="hacker_map.html" target="_blank" style="color:var(--text-accent);font-weight:600;text-decoration:none">See the ethical hacker&#39;s map &rarr;<\/a>';
+  h+='<span style="color:var(--text-muted);font-size:11px;display:block;margin-top:3px">An interactive overview of the full attack surface — where this app fits in the bigger picture.<\/span>';
+  h+='<\/div>';
+  h+='<\/div>';
+  pane.innerHTML=h;
+}
+
+function showUserPicker(){
+  var pane=document.getElementById('cpu-pane');
+  if(!pane) return;
+  var ul=userList();
+  var h='<div class="pane-header"><div class="pane-title">Welcome back!<\/div><div class="pane-subtitle">Select your profile<\/div><\/div>';
+  h+='<div style="max-width:400px">';
+  ul.forEach(function(item){
+    h+='<div data-userkey="'+item.key+'" class="user-card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:8px">';
+    h+='<div><div style="font-size:14px;font-weight:700">'+escHtml(item.data.displayName)+'<\/div>';
+    h+='<div style="font-size:11px;color:var(--text-muted)">'+LEVEL_CONFIG[Math.min(item.data.maxUnlocked,6)].label+' &bull; '+item.data.xp+' XP &bull; Streak: '+item.data.streak+'<\/div><\/div>';
+    h+='<div style="font-size:12px;color:var(--text-accent)">&#9654; Play<\/div><\/div>';
+  });
+  h+='<\/div>';
+  pane.innerHTML=h;
+  setTimeout(function(){
+    document.querySelectorAll('.user-card[data-userkey]').forEach(function(card){
+      card.addEventListener('click',function(){
+        setUser(card.getAttribute('data-userkey'));
+        var pp=document.getElementById('player-panel');
+        if(pp) pp.innerHTML=buildPlayerPanel();
+        bindPlayerEvents();
+        showWelcome();
+      });
+      card.addEventListener('mouseover',function(){card.style.borderColor='var(--fill-accent)';});
+      card.addEventListener('mouseout',function(){card.style.borderColor='var(--border)';});
+    });
+  },50);
+}
+
+function showWelcome(){
+  ['alu','regs','flags','mem','cu'].forEach(function(k){
+    var el=document.getElementById('map-'+k);
+    if(el)el.classList.remove('active');
+  });
+  currentPane=null;
+  var pp=document.getElementById('player-panel');
+  if(pp) pp.innerHTML=buildPlayerPanel();
+  bindPlayerEvents();
+  buildWelcomeContent();
+}
+
+function resetAll(){
+  cpu={regs:[0,0,0,0],pc:0,mem:new Array(32).fill(0),flags:{zero:0,bit8:0,bit7:0}};
+  cuStep=0;cuLog=[];hackAnswer='';hackRevealed=false;hackCorrect=false;
+  PROGRAM=generateProgram();initAls('ADD','guided');
+  updateMapRegs();updateMapFlags();updateMapMem();
+  const pcEl=document.getElementById('map-pc');if(pcEl)pcEl.textContent='0x00';
+  showWelcome();
+}
+function newProgram(){
+  cpu={regs:[0,0,0,0],pc:0,mem:new Array(32).fill(0),flags:{zero:0,bit8:0,bit7:0}};
+  cuStep=0;cuLog=[];hackAnswer='';hackRevealed=false;hackCorrect=false;hackUsedReveal=false;
+  PROGRAM=generateProgram();initAls('ADD','guided');
+  updateMapRegs();updateMapFlags();updateMapMem();
+  const pcEl=document.getElementById('map-pc');if(pcEl)pcEl.textContent='0x00';
+  selectPane('cu');
+}
+
+// ═══════════════════════════════════════════════════════
+//  USER + SAVE SYSTEM
+// ═══════════════════════════════════════════════════════
+
+let saveData = { users: {}, lastUser: null };
+let currentUser = null; // key into saveData.users
+
+const LEVEL_CONFIG = [
+  null, // 0-indexed padding
+  { label:'Level 1', xp:10,  bonus:2,  streakToUnlock:0, unlockStreak:3,  desc:'Change one ALU operation' },
+  { label:'Level 2', xp:20,  bonus:3,  streakToUnlock:3, unlockStreak:4,  desc:'Flip a jump condition' },
+  { label:'Level 3', xp:35,  bonus:5,  streakToUnlock:4, unlockStreak:5,  desc:'Change an operand register' },
+  { label:'Level 4', xp:55,  bonus:7,  streakToUnlock:5, unlockStreak:5,  desc:'Change a seed value, trace propagation' },
+  { label:'Level 5', xp:80,  bonus:10, streakToUnlock:5, unlockStreak:6,  desc:'Two-instruction change' },
+  { label:'Level 6', xp:120, bonus:15, streakToUnlock:6, unlockStreak:999,desc:'Work backwards from target output' },
+];
+
+function defaultUser(name) {
+  return {
+    displayName: name,
+    xp: 0,
+    level: 1,
+    streak: 0,
+    maxUnlocked: 1,
+    attemptHistory: [], // {level, correct, usedReveal}
+  };
+}
+
+function getUser() {
+  return currentUser ? saveData.users[currentUser] : null;
+}
+
+function setUser(key) {
+  currentUser = key;
+  if (saveData.lastUser !== key) {
+    saveData.lastUser = key;
+  }
+}
+
+function createUser(displayName) {
+  const key = displayName.toLowerCase().trim();
+  if (!key) return null;
+  if (!saveData.users[key]) {
+    saveData.users[key] = defaultUser(displayName.trim());
+  }
+  setUser(key);
+  return key;
+}
+
+function userList() {
+  return Object.keys(saveData.users).map(k => ({
+    key: k,
+    data: saveData.users[k]
+  }));
+}
+
+// ── XP + STREAK ENGINE ────────────────────────────────
+
+let hackUsedReveal = false; // set true when reveal clicked in current challenge
+
+function recordAttempt(correct, usedReveal) {
+  const u = getUser();
+  if (!u) return;
+  const lvl = hackDifficulty;
+  const cfg = LEVEL_CONFIG[lvl];
+
+  u.attemptHistory.push({ level: lvl, correct, usedReveal });
+  if (u.attemptHistory.length > 100) u.attemptHistory.shift();
+
+  if (correct && !usedReveal) {
+    // Award XP with streak bonus
+    const earned = cfg.xp + (u.streak * cfg.bonus);
+    u.xp += earned;
+    u.streak += 1;
+    // Check unlock
+    checkUnlock(u, lvl);
+    return { earned, streakBroken: false };
+  } else if (correct && usedReveal) {
+    // Correct but reveal was used - no XP, streak resets
+    u.streak = 0;
+    return { earned: 0, streakBroken: true };
+  } else {
+    // Wrong
+    u.streak = 0;
+    return { earned: 0, streakBroken: true };
+  }
+}
+
+function checkUnlock(u, lvl) {
+  const cfg = LEVEL_CONFIG[lvl];
+  const nextLvl = lvl + 1;
+  if (nextLvl <= 6 && u.maxUnlocked < nextLvl && u.streak >= cfg.unlockStreak) {
+    u.maxUnlocked = nextLvl;
+    return nextLvl; // signals a new unlock
+  }
+  return null;
+}
+
+function xpToNextUnlock(u) {
+  const nextLvl = u.maxUnlocked + 1;
+  if (nextLvl > 6) return null;
+  const cfg = LEVEL_CONFIG[u.maxUnlocked];
+  // XP needed is approximate - streak to unlock
+  const needed = cfg.unlockStreak;
+  const current = u.streak;
+  return { needed, current, pct: Math.min(100, Math.round(current / needed * 100)) };
+}
+
+// ── DIFFICULTY SELECTOR ───────────────────────────────
+
+let hackDifficulty = 1;
+
+function buildDifficultySelector() {
+  const u = getUser();
+  if (!u) return '';
+  const opts = [];
+  for (let i = 1; i <= u.maxUnlocked; i++) {
+    opts.push('<option value="'+i+'"'+(hackDifficulty===i?' selected':'')+'>'+LEVEL_CONFIG[i].label+' \u2014 '+LEVEL_CONFIG[i].desc+'<\/option>');
+  }
+  return '<div style="margin-bottom:10px">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Hack challenge difficulty<\/div>'
+    +'<select id="diff-sel" style="width:100%;padding:6px 9px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);color:var(--text-primary);font-size:12px">'
+      +opts.join('')
+    +'<\/select>'
+  +'<\/div>';
+}
+
+// ── SAVE / LOAD ───────────────────────────────────────
+
+function saveProgress() {
+  // If current user is the default 'player', prompt for a real name first
+  var u = getUser();
+  if(u && currentUser === 'player' && u.displayName === 'Player'){
+    var name = window.prompt('Choose a username to save your progress:','');
+    if(!name || !name.trim()) return;
+    var key = name.toLowerCase().trim();
+    // Rename the anonymous user
+    saveData.users[key] = saveData.users['player'];
+    saveData.users[key].displayName = name.trim();
+    delete saveData.users['player'];
+    saveData.lastUser = key;
+    currentUser = key;
+    var pp=document.getElementById('player-panel');
+    if(pp) pp.innerHTML=buildPlayerPanel();
+    bindPlayerEvents();
+  }
+  var blob = new Blob([JSON.stringify(saveData, null, 2)], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'virtual_cpu_save.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadSaveFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var parsed = JSON.parse(e.target.result);
+      if(parsed.users){
+        saveData = parsed;
+        // Auto-select last user or first user
+        if(parsed.lastUser && parsed.users[parsed.lastUser]){
+          currentUser = parsed.lastUser;
+        } else {
+          var keys = Object.keys(parsed.users);
+          currentUser = keys.length ? keys[0] : null;
+        }
+        // If multiple users, let them pick; otherwise go straight in
+        var keys = Object.keys(parsed.users);
+        if(keys.length > 1){
+          showUserPicker();
+        } else {
+          var pp=document.getElementById('player-panel');
+          if(pp) pp.innerHTML=buildPlayerPanel();
+          bindPlayerEvents();
+          showWelcome();
+        }
+      }
+    } catch(err) {
+      alert('Could not read save file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── LEFT PANEL PLAYER SECTION ─────────────────────────
+
+function buildPlayerPanel() {
+  const u = getUser();
+  if (!u) return '';
+  const ul = userList();
+  const progress = xpToNextUnlock(u);
+  const cfg = LEVEL_CONFIG[u.level] || LEVEL_CONFIG[1];
+
+  // User dropdown
+  const userOpts = ul.map(({key, data}) =>
+    '<option value="'+key+'"'+(key===currentUser?' selected':'')+'>'+escHtml(data.displayName)+'<\/option>'
+  ).join('') + '<option value="__new__">+ New user...<\/option>';
+
+  const progressBar = progress
+    ? '<div style="height:4px;background:var(--surface-2);border-radius:2px;margin:4px 0 2px;overflow:hidden"><div style="height:100%;width:'+progress.pct+'%;background:var(--fill-accent);border-radius:2px;transition:width .3s"><\/div><\/div>'
+      +'<div style="font-size:10px;color:var(--text-muted)">Streak '+progress.current+'\/'+progress.needed+' to unlock Level '+(u.maxUnlocked+1)+'<\/div>'
+    : '<div style="font-size:10px;color:var(--text-success);margin-top:2px">All levels unlocked!<\/div>';
+
+  return '<div style="border-top:0.5px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:6px">'
+    // User selector
+    +'<select id="user-sel" style="width:100%;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:11px;font-weight:600">'
+      +userOpts
+    +'<\/select>'
+    // New user inline input (hidden by default)
+    +'<div id="new-user-row" style="display:none;gap:4px;display:none">'
+      +'<input id="new-user-input" type="text" placeholder="Enter username" style="flex:1;padding:5px 8px;border:0.5px solid var(--border-accent);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:11px;width:100%">'
+      +'<button id="new-user-confirm" style="padding:5px 10px;border-radius:var(--radius);border:none;background:var(--fill-accent);color:#fff;font-size:11px;cursor:pointer;margin-top:4px;width:100%">Create<\/button>'
+    +'<\/div>'
+    // Level + XP
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline">'
+      +'<span style="font-size:11px;font-weight:700;color:var(--text-accent)">'+LEVEL_CONFIG[Math.min(u.maxUnlocked,6)].label+'<\/span>'
+      +'<span style="font-size:11px;font-family:var(--font-mono);color:var(--text-primary);font-weight:700">'+u.xp+' XP<\/span>'
+    +'<\/div>'
+    +progressBar
+    // Streak
+    +(u.streak>0
+      ? '<div style="font-size:11px;color:var(--text-warning);font-weight:600">'+(u.streak>=5?'🔥':'⚡')+' Streak: '+u.streak+'<\/div>'
+      : '<div style="font-size:11px;color:var(--text-muted)">No streak yet<\/div>')
+    // Buttons
+    +'<button id="btn-save-progress" style="width:100%;padding:6px 10px;border-radius:var(--radius);border:0.5px solid var(--border-accent);background:var(--bg-accent);color:var(--text-accent);font-size:11px;font-weight:500;cursor:pointer">&#128190; Save progress<\/button>'
+    +'<label style="width:100%;display:block">'
+      +'<span style="display:block;width:100%;padding:5px 10px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-1);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer;text-align:center;box-sizing:border-box">&#128194; Load save file<\/span>'
+      +'<input id="load-save-input" type="file" accept=".json" style="display:none">'
+    +'<\/label>'
+    +'<button id="btn-restart" style="width:100%;padding:6px 10px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-1);color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer">&#8962; Restart<\/button>'
+  +'<\/div>';
+}
+
+// ── SIX CHALLENGE LEVELS ──────────────────────────────
+
+function buildHackChallenge() {
+  if (!hackChallenge) return '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">No hack challenge available for this program.<\/div>';
+  const u = getUser();
+  const cfg = LEVEL_CONFIG[hackDifficulty];
+  const h = generateLevelChallenge(hackDifficulty);
+  if (!h) return '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">No challenge available at this level for this program. Try a different difficulty or generate a new program.<\/div>';
+
+  // Store challenge on hackChallenge for checkHack
+  hackChallenge._activeChallenge = h;
+
+  const streakInfo = u ? ' &nbsp;&#x1F525; Streak: '+u.streak : '';
+  const xpInfo = u ? ' &nbsp;+'+cfg.xp+' XP'+(u.streak>0?' (+'+u.streak*cfg.bonus+' streak bonus)':'') : '';
+
+  return '<div style="background:var(--surface-1);border:0.5px solid var(--border-warning);border-radius:8px;padding:12px;margin-bottom:12px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text-warning);text-transform:uppercase;letter-spacing:.05em">Hack challenge &mdash; '+cfg.label+'<\/div>'
+      +(u?'<div style="font-size:10px;color:var(--text-muted)">'+xpInfo+'<\/div>':'')
+    +'<\/div>'
+    +'<div style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px">'+h.question+'<\/div>'
+    +(h.hint_prompt ? '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;font-style:italic">'+h.hint_prompt+'<\/div>' : '')
+    +'<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:8px">'
+      +(h.inputType==='text'
+        ? '<input id="hack-ans" type="text" placeholder="'+h.placeholder+'" style="width:100px;padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:14px;font-family:var(--font-mono);font-weight:700;text-align:center" value="'+hackAnswer+'">'
+        : h.options.map((opt,i)=>'<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="radio" name="hack-opt" value="'+escHtml(String(opt))+'"'+(hackAnswer===String(opt)?' checked':'')+'>'+escHtml(String(opt))+'<\/label>').join(''))
+      +'<button style="padding:6px 14px;border-radius:var(--radius);border:0.5px solid var(--border-success);background:var(--bg-success);color:var(--text-success);cursor:pointer;font-size:12px;font-weight:500" onclick="checkHack()">Check<\/button>'
+      +'<button style="padding:6px 14px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface-1);color:var(--text-secondary);cursor:pointer;font-size:12px" onclick="revealHack()">Reveal<\/button>'
+    +'<\/div>'
+    +(hackCorrect?'<div id="hack-result" style="font-size:12px;font-weight:500;color:var(--text-success);background:var(--bg-success);padding:5px 10px;border-radius:var(--radius);display:inline-block;margin-bottom:8px">Correct! '+xpInfo+streakInfo+'<\/div><br>':'')
+    +(hackRevealed&&!hackCorrect?'<div style="font-size:12px;color:var(--text-accent);background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:9px 11px;line-height:1.65">'+h.explanation+'<\/div>':'')
+  +'<\/div>';
+}
+
+function generateLevelChallenge(level) {
+  if (!hackChallenge) return null;
+  const prog = PROGRAM;
+  const aluInstrs = prog.filter(p=>p.type==='alu');
+  const jumpInstrs = prog.filter(p=>p.type==='jump');
+  const movInstrs = prog.filter(p=>p.type==='mov');
+  const storeInstr = prog.find(p=>p.type==='store');
+
+  if (level===1) {
+    // Change one ALU op, predict output
+    return hackChallenge._activeChallenge || buildL1Challenge();
+  } else if (level===2) {
+    return buildL2Challenge(jumpInstrs, storeInstr);
+  } else if (level===3) {
+    return buildL3Challenge(aluInstrs, storeInstr);
+  } else if (level===4) {
+    return buildL4Challenge(movInstrs, aluInstrs, storeInstr);
+  } else if (level===5) {
+    return buildL5Challenge(aluInstrs, storeInstr);
+  } else if (level===6) {
+    return buildL6Challenge(storeInstr, aluInstrs);
+  }
+  return buildL1Challenge();
+}
+
+function buildL1Challenge() {
+  if (!hackChallenge) return null;
+  const h = hackChallenge;
+  return {
+    question: h.question,
+    answer: String(h.newResult),
+    inputType: 'text',
+    placeholder: '?',
+    hint_prompt: null,
+    explanation: h.hint,
+  };
+}
+
+function simProgram(overrides){
+  const ovMap={};
+  (overrides||[]).forEach(function(o){ovMap[o.addr]=o;});
+  const simR=[0,0,0,0];var simPc=0;
+  const simF={zero:0,bit8:0,bit7:0};var steps=0;
+  while(simPc<PROGRAM.length&&steps<30){
+    const ins=PROGRAM[simPc];steps++;
+    const ov=ovMap[ins.addr];
+    if(ins.type==='mov'){
+      simR[ins.dest]=(ov&&ov.type==='mov')?ov.newVal:ins.val;simPc++;
+    }else if(ins.type==='alu'){
+      const useOp=(ov&&ov.type==='op')?ov.newOp:ins.op;
+      const useSrcA=(ov&&ov.type==='swap')?ins.srcB:ins.srcA;
+      const useSrcB=(ov&&ov.type==='swap')?ins.srcA:ins.srcB;
+      const o=ALU_OPS.find(function(x){return x.id===useOp;});
+      const a=simR[useSrcA],b=useSrcB!==null?simR[useSrcB]:0;
+      simR[ins.dest]=o.fn(a,b);
+      simF.zero=simR[ins.dest]===0?1:0;
+      simF.bit8=o.bit8Fn(a,b);
+      simF.bit7=(simR[ins.dest]&0x80)?1:0;simPc++;
+    }else if(ins.type==='cmp'){
+      const diff=simR[ins.srcA]-simR[ins.srcB];
+      simF.zero=diff===0?1:0;simF.bit8=diff<0?1:0;
+      simF.bit7=((diff+256)&0xFF&0x80)?1:0;simPc++;
+    }else if(ins.type==='jump'){
+      const useCond=(ov&&ov.type==='cond')?ov.newCond:ins.cond;
+      var j=false;
+      if(useCond==='eq')j=simF.zero===1;else if(useCond==='ne')j=simF.zero===0;
+      else if(useCond==='gt')j=simF.zero===0&&simF.bit8===0;else if(useCond==='lt')j=simF.bit8===1;
+      if(j){simPc=ins.target;}else{simPc++;}
+    }else{simPc++;}
+  }
+  return simR;
+}
+
+function buildL2Challenge(jumpInstrs,storeInstr){
+  if(!jumpInstrs.length||!storeInstr)return buildL1Challenge();
+  const jump=jumpInstrs[0];
+  const condMap={eq:'ne',ne:'eq',gt:'lt',lt:'gt'};
+  const flippedCond=condMap[jump.cond];
+  if(!flippedCond)return buildL1Challenge();
+  const simR=simProgram([{addr:jump.addr,type:'cond',newCond:flippedCond}]);
+  const newOutput=simR[storeInstr.src];
+  const condNames={eq:'JEQ',ne:'JNE',gt:'JGT',lt:'JLT'};
+  return{
+    question:'The program contains a '+condNames[jump.cond]+' at '+jump.addr+'. If you changed it to '+condNames[flippedCond]+', what value would end up in mem[0]?',
+    answer:String(newOutput),inputType:'text',placeholder:'?',
+    hint_prompt:'Trace both branch paths to find which one now executes.',
+    explanation:'Flipping the condition reverses which branch executes. New mem[0] = '+newOutput+'.'
+  };
+}
+
+function buildL3Challenge(aluInstrs,storeInstr){
+  if(aluInstrs.length<1||!storeInstr)return buildL1Challenge();
+  const tgt=aluInstrs.find(function(i){return i.srcB!==null&&i.srcA!==i.srcB;});
+  if(!tgt)return buildL1Challenge();
+  const simR=simProgram([{addr:tgt.addr,type:'swap'}]);
+  const newOutput=simR[storeInstr.src];
+  return{
+    question:'The instruction at '+tgt.addr+' is "'+tgt.code+'". If you swapped its two input registers, what value would end up in mem[0]?',
+    answer:String(newOutput),inputType:'text',placeholder:'?',
+    hint_prompt:'The operation is the same -- only which value goes into A and B changes.',
+    explanation:'A and B are swapped. New mem[0] = '+newOutput+'.'
+  };
+}
+
+function buildL4Challenge(movInstrs,aluInstrs,storeInstr){
+  if(!movInstrs.length||!storeInstr)return buildL1Challenge();
+  const tgt=movInstrs[Math.floor(Math.random()*movInstrs.length)];
+  const oldVal=tgt.val;
+  const newVal=oldVal>30?Math.floor(oldVal/2):oldVal*2;
+  const simR=simProgram([{addr:tgt.addr,type:'mov',newVal:newVal}]);
+  const newOutput=simR[storeInstr.src];
+  return{
+    question:'The instruction at '+tgt.addr+' loads '+oldVal+' into R'+tgt.dest+'. If you changed it to load '+newVal+' instead, what value would end up in mem[0]?',
+    answer:String(newOutput),inputType:'text',placeholder:'?',
+    hint_prompt:'Start with R'+tgt.dest+' = '+newVal+' and re-trace every instruction that uses it.',
+    explanation:'R'+tgt.dest+' starts as '+newVal+'. Tracing forward: mem[0] = '+newOutput+'.'
+  };
+}
+
+function buildL5Challenge(aluInstrs,storeInstr){
+  if(aluInstrs.length<2||!storeInstr)return buildL4Challenge(PROGRAM.filter(function(p){return p.type==='mov';}),aluInstrs,storeInstr);
+  const t1=aluInstrs[0],t2=aluInstrs[aluInstrs.length>1?1:0];
+  if(t1===t2)return buildL4Challenge(PROGRAM.filter(function(p){return p.type==='mov';}),aluInstrs,storeInstr);
+  const alts1=['ADD','SUB','AND','XOR'].filter(function(o){return o!==t1.op;});
+  const alts2=['ADD','SUB','AND','XOR'].filter(function(o){return o!==t2.op;});
+  if(!alts1.length||!alts2.length)return buildL4Challenge(PROGRAM.filter(function(p){return p.type==='mov';}),aluInstrs,storeInstr);
+  const newOp1=alts1[Math.floor(Math.random()*alts1.length)];
+  const newOp2=alts2[Math.floor(Math.random()*alts2.length)];
+  const simR=simProgram([{addr:t1.addr,type:'op',newOp:newOp1},{addr:t2.addr,type:'op',newOp:newOp2}]);
+  const newOutput=simR[storeInstr.src];
+  return{
+    question:'Make TWO changes: change '+t1.addr+' from '+t1.op+' to '+newOp1+', AND change '+t2.addr+' from '+t2.op+' to '+newOp2+'. What value ends up in mem[0]?',
+    answer:String(newOutput),inputType:'text',placeholder:'?',
+    hint_prompt:'Apply the first change and trace forward, then apply the second.',
+    explanation:'Both changes applied: mem[0] = '+newOutput+'.'
+  };
+}
+
+function buildL6Challenge(storeInstr,aluInstrs){
+  if(!storeInstr||!aluInstrs.length)return buildL1Challenge();
+  const currentOutput=storeInstr?cpu.regs[storeInstr.src]:0;
+  const targets=[0,(currentOutput*2)&0xFF,Math.floor(currentOutput/2)].filter(function(t){return t!==currentOutput;});
+  if(!targets.length)return buildL1Challenge();
+  const target=targets[Math.floor(Math.random()*targets.length)];
+  const altOps=['ADD','SUB','AND','XOR','SHL','SHR'];
+  var solution=null;
+  for(var ti=0;ti<aluInstrs.length&&!solution;ti++){
+    const tgt=aluInstrs[ti];
+    for(var oi=0;oi<altOps.length&&!solution;oi++){
+      const newOp=altOps[oi];
+      if(newOp===tgt.op)continue;
+      const simR=simProgram([{addr:tgt.addr,type:'op',newOp:newOp}]);
+      if(simR[storeInstr.src]===target){
+        solution={addr:tgt.addr,oldOp:tgt.op,newOp:newOp};
+      }
+    }
+  }
+  if(!solution)return buildL5Challenge(aluInstrs,storeInstr);
+  const correctAns='Change '+solution.addr+' from '+solution.oldOp+' to '+solution.newOp;
+  const wrongAns='Change '+solution.addr+' from '+solution.oldOp+' to '+['ADD','SUB','XOR','AND'].find(function(o){return o!==solution.oldOp&&o!==solution.newOp;}||'AND');
+  const distractors=aluInstrs.filter(function(i){return i.addr!==solution.addr;}).slice(0,2).map(function(i){return'Change '+i.addr+' from '+i.op+' to '+(['ADD','SUB','XOR','AND'].find(function(o){return o!==i.op;})||'AND');});
+  const options=[correctAns,wrongAns].concat(distractors.filter(Boolean)).slice(0,4);
+  for(var i=options.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=options[i];options[i]=options[j];options[j]=tmp;}
+  return{
+    question:'The program stores '+currentOutput+' in mem[0]. Which single change makes it store '+target+' instead?',
+    answer:correctAns,inputType:'radio',options:options,placeholder:null,
+    hint_prompt:'Trace what each change does to the stored value.',
+    explanation:'Correct: '+correctAns+'. This produces mem[0] = '+target+'.'
+  };
+}
+
+// ── UPDATED checkHack TO USE PROGRESSION ─────────────
+
+function checkHack() {
+  const h = hackChallenge && hackChallenge._activeChallenge;
+  if (!h) return;
+  let ans;
+  if (h.inputType==='radio') {
+    const sel = document.querySelector('input[name="hack-opt"]:checked');
+    ans = sel ? sel.value : '';
+  } else {
+    const inp = document.getElementById('hack-ans');
+    ans = inp ? inp.value.trim() : '';
+  }
+  if (!ans) return;
+  hackAnswer = ans;
+  hackCorrect = ans === h.answer;
+
+  if (hackCorrect || !hackCorrect) {
+    const result = recordAttempt(hackCorrect, hackUsedReveal);
+    const u = getUser();
+    // Check for level unlock
+    if (hackCorrect && u) {
+      const unlocked = checkUnlock(u, hackDifficulty);
+      if (unlocked) {
+        setTimeout(()=>{
+          const banner = document.createElement('div');
+          banner.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--fill-accent);color:#fff;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2)';
+          banner.textContent='🎉 Level '+unlocked+' unlocked!';
+          document.body.appendChild(banner);
+          setTimeout(()=>banner.remove(),2500);
+        }, 300);
+      }
+    }
+    updatePlayerPanel();
+    renderPane();
+  }
+}
+
+function revealHack() {
+  hackRevealed = true;
+  hackUsedReveal = true;
+  // Streak resets on reveal
+  const u = getUser();
+  if (u) { u.streak = 0; updatePlayerPanel(); }
+  renderPane();
+}
+
+// ── PLAYER PANEL UPDATE (without full re-render) ──────
+
+function updatePlayerPanel() {
+  const panel = document.getElementById('player-panel');
+  if (panel) panel.innerHTML = buildPlayerPanel();
+  bindPlayerEvents();
+}
+
+function bindPlayerEvents() {
+  const userSel = document.getElementById('user-sel');
+  if (userSel) userSel.addEventListener('change', e => {
+    if (e.target.value === '__new__') {
+      const row = document.getElementById('new-user-row');
+      if (row) row.style.display = 'flex';
+      userSel.value = currentUser || Object.keys(saveData.users)[0] || '__new__';
+    } else {
+      setUser(e.target.value);
+      hackDifficulty = Math.min(hackDifficulty, saveData.users[e.target.value].maxUnlocked);
+      hackAnswer = ''; hackRevealed = false; hackCorrect = false;
+      updatePlayerPanel();
+      if (currentPane === 'cu') renderPane();
+    }
+  });
+
+  const newConfirm = document.getElementById('new-user-confirm');
+  if (newConfirm) newConfirm.addEventListener('click', () => {
+    const inp = document.getElementById('new-user-input');
+    const name = inp ? inp.value.trim() : '';
+    if (name) {
+      createUser(name);
+      updatePlayerPanel();
+      showWelcome();
+    }
+  });
+
+  const saveBtn = document.getElementById('btn-save-progress');
+  if (saveBtn) saveBtn.addEventListener('click', saveProgress);
+
+  const loadInp = document.getElementById('load-save-input');
+  if (loadInp) loadInp.addEventListener('change', e => {
+    if (e.target.files[0]) loadSaveFile(e.target.files[0]);
+  });
+
+  const restartBtn = document.getElementById('btn-restart');
+  if (restartBtn) restartBtn.addEventListener('click', () => {
+    showWelcome();
+  });
+
+  const diffSel = document.getElementById('diff-sel');
+  if (diffSel) diffSel.addEventListener('change', e => {
+    hackDifficulty = parseInt(e.target.value);
+    hackAnswer = ''; hackRevealed = false; hackCorrect = false;
+    hackUsedReveal = false;
+    if (hackChallenge) hackChallenge._activeChallenge = generateLevelChallenge(hackDifficulty);
+    renderPane();
+  });
+}
+
+window.onload=function(){
+  initAls('ADD','guided');
+  document.getElementById('map-mem-mini').innerHTML=cpu.mem.map(()=>'<div class="mem-mini-cell"><\/div>').join('');
+  // Start anonymous session - no username required
+  if(Object.keys(saveData.users).length===0){
+    createUser('Player');
+  } else if(saveData.lastUser && saveData.users[saveData.lastUser]){
+    setUser(saveData.lastUser);
+  } else {
+    setUser(Object.keys(saveData.users)[0]);
+  }
+  const _pp=document.getElementById('player-panel');
+  if(_pp)_pp.innerHTML=buildPlayerPanel();
+  bindPlayerEvents();
+  showWelcome();
+};
+
+</script>
+</body>
+</html>
