@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Virtual CPU v2.0</title>
+<title>Virtual CPU v0.1-beta</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <style>
 :root{--font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--font-mono:'SF Mono','Fira Code',monospace;--radius:6px;--text-primary:#1a1a1a;--text-secondary:#555;--text-muted:#888;--text-accent:#2563eb;--text-success:#16a34a;--text-danger:#dc2626;--text-warning:#92400e;--surface-0:#fff;--surface-1:#f8f9fa;--surface-2:#f1f3f5;--border:#e2e8f0;--border-strong:#cbd5e1;--border-accent:#93c5fd;--border-success:#86efac;--border-danger:#fca5a5;--border-warning:#fcd34d;--fill-accent:#2563eb;--bg-accent:#eff6ff;--bg-success:#f0fdf4;--bg-danger:#fef2f2;--bg-warning:#fffbeb}
@@ -112,7 +112,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 </head>
 <body>
 <div class="page">
-<h1>Virtual CPU <span style="font-size:11px;font-weight:400;color:var(--text-muted);background:var(--surface-2);padding:2px 6px;border-radius:4px">v2.0</span></h1>
+<h1>Virtual CPU <span style="font-size:11px;font-weight:400;color:var(--text-muted);background:var(--surface-2);padding:2px 6px;border-radius:4px">v0.1-beta</span></h1>
 <div class="cpu-shell">
 <div class="cpu-map">
   <div class="map-title">Virtual CPU</div>
@@ -687,6 +687,35 @@ function buildWelcomeContent(){
   pane.innerHTML=h;
 }
 
+function showUserPicker(){
+  var pane=document.getElementById('cpu-pane');
+  if(!pane) return;
+  var ul=userList();
+  var h='<div class="pane-header"><div class="pane-title">Welcome back!<\/div><div class="pane-subtitle">Select your profile<\/div><\/div>';
+  h+='<div style="max-width:400px">';
+  ul.forEach(function(item){
+    h+='<div data-userkey="'+item.key+'" class="user-card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:8px">';
+    h+='<div><div style="font-size:14px;font-weight:700">'+escHtml(item.data.displayName)+'<\/div>';
+    h+='<div style="font-size:11px;color:var(--text-muted)">'+LEVEL_CONFIG[Math.min(item.data.maxUnlocked,6)].label+' &bull; '+item.data.xp+' XP &bull; Streak: '+item.data.streak+'<\/div><\/div>';
+    h+='<div style="font-size:12px;color:var(--text-accent)">&#9654; Play<\/div><\/div>';
+  });
+  h+='<\/div>';
+  pane.innerHTML=h;
+  setTimeout(function(){
+    document.querySelectorAll('.user-card[data-userkey]').forEach(function(card){
+      card.addEventListener('click',function(){
+        setUser(card.getAttribute('data-userkey'));
+        var pp=document.getElementById('player-panel');
+        if(pp) pp.innerHTML=buildPlayerPanel();
+        bindPlayerEvents();
+        showWelcome();
+      });
+      card.addEventListener('mouseover',function(){card.style.borderColor='var(--fill-accent)';});
+      card.addEventListener('mouseout',function(){card.style.borderColor='var(--border)';});
+    });
+  },50);
+}
+
 function showWelcome(){
   ['alu','regs','flags','mem','cu'].forEach(function(k){
     var el=document.getElementById('map-'+k);
@@ -694,48 +723,8 @@ function showWelcome(){
   });
   currentPane=null;
   var pp=document.getElementById('player-panel');
-  if(pp){pp.innerHTML=buildPlayerPanel();}
+  if(pp) pp.innerHTML=buildPlayerPanel();
   bindPlayerEvents();
-
-  var pane=document.getElementById('cpu-pane');
-  if(!pane)return;
-
-  if(!currentUser||!saveData.users[currentUser]){
-    var ul=userList();
-    var html='<div class="pane-header"><div class="pane-title">Virtual CPU<\/div><div class="pane-subtitle">A hands-on computer for aspiring ethical hackers<\/div><\/div>';
-    if(ul.length>0){
-      html+='<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Select a user<\/div>';
-      ul.forEach(function(item){
-        html+='<div data-userkey="'+item.key+'" class="user-card" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px">';
-        html+='<div><div style="font-size:13px;font-weight:700">'+escHtml(item.data.displayName)+'<\/div>';
-        html+='<div style="font-size:11px;color:var(--text-muted)">'+LEVEL_CONFIG[Math.min(item.data.maxUnlocked,6)].label+' &bull; '+item.data.xp+' XP<\/div><\/div>';
-        html+='<div style="font-size:11px;color:var(--text-accent)">&#9654; Continue<\/div><\/div>';
-      });
-      html+='<\/div><div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;text-align:center">&#8212; or &#8212;<\/div>';
-    }
-    html+='<div style="background:var(--surface-1);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:12px;margin-bottom:14px">';
-    html+='<div style="font-size:12px;font-weight:700;color:var(--text-accent);margin-bottom:8px">'+(ul.length?'Create new user':'Create a username to begin')+'<\/div>';
-    html+='<div style="display:flex;gap:6px">';
-    html+='<input id="welcome-username" type="text" placeholder="Enter username" style="flex:1;padding:7px 10px;border:0.5px solid var(--border-accent);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px">';
-    html+='<button id="welcome-create-btn" style="padding:7px 16px;border-radius:var(--radius);border:none;background:var(--fill-accent);color:#fff;font-size:13px;font-weight:500;cursor:pointer">Start<\/button>';
-    html+='<\/div><\/div>';
-    pane.innerHTML=html;
-
-    setTimeout(function(){
-      var btn=document.getElementById('welcome-create-btn');
-      var inp=document.getElementById('welcome-username');
-      if(btn&&inp){
-        btn.addEventListener('click',function(){var name=inp.value.trim();if(name){createUser(name);showWelcome();}});
-        inp.addEventListener('keydown',function(e){if(e.key==='Enter'){var name=inp.value.trim();if(name){createUser(name);showWelcome();}}});
-      }
-      document.querySelectorAll('.user-card[data-userkey]').forEach(function(card){
-        card.addEventListener('click',function(){setUser(card.getAttribute('data-userkey'));showWelcome();});
-        card.addEventListener('mouseover',function(){card.style.borderColor='var(--fill-accent)';});
-        card.addEventListener('mouseout',function(){card.style.borderColor='var(--border)';});
-      });
-    },50);
-    return;
-  }
   buildWelcomeContent();
 }
 
@@ -886,8 +875,24 @@ function buildDifficultySelector() {
 // ── SAVE / LOAD ───────────────────────────────────────
 
 function saveProgress() {
-  const blob = new Blob([JSON.stringify(saveData, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
+  // If current user is the default 'player', prompt for a real name first
+  var u = getUser();
+  if(u && currentUser === 'player' && u.displayName === 'Player'){
+    var name = window.prompt('Choose a username to save your progress:','');
+    if(!name || !name.trim()) return;
+    var key = name.toLowerCase().trim();
+    // Rename the anonymous user
+    saveData.users[key] = saveData.users['player'];
+    saveData.users[key].displayName = name.trim();
+    delete saveData.users['player'];
+    saveData.lastUser = key;
+    currentUser = key;
+    var pp=document.getElementById('player-panel');
+    if(pp) pp.innerHTML=buildPlayerPanel();
+    bindPlayerEvents();
+  }
+  var blob = new Blob([JSON.stringify(saveData, null, 2)], {type:'application/json'});
+  var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'virtual_cpu_save.json';
   a.click();
@@ -895,14 +900,29 @@ function saveProgress() {
 }
 
 function loadSaveFile(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
+  var reader = new FileReader();
+  reader.onload = function(e) {
     try {
-      const parsed = JSON.parse(e.target.result);
-      if (parsed.users) {
+      var parsed = JSON.parse(e.target.result);
+      if(parsed.users){
         saveData = parsed;
-        currentUser = null;
-        showWelcome();
+        // Auto-select last user or first user
+        if(parsed.lastUser && parsed.users[parsed.lastUser]){
+          currentUser = parsed.lastUser;
+        } else {
+          var keys = Object.keys(parsed.users);
+          currentUser = keys.length ? keys[0] : null;
+        }
+        // If multiple users, let them pick; otherwise go straight in
+        var keys = Object.keys(parsed.users);
+        if(keys.length > 1){
+          showUserPicker();
+        } else {
+          var pp=document.getElementById('player-panel');
+          if(pp) pp.innerHTML=buildPlayerPanel();
+          bindPlayerEvents();
+          showWelcome();
+        }
       }
     } catch(err) {
       alert('Could not read save file.');
@@ -915,12 +935,7 @@ function loadSaveFile(file) {
 
 function buildPlayerPanel() {
   const u = getUser();
-  if (!u) {
-    const ul=userList();
-    if(!ul.length) return '<div style="border-top:0.5px solid var(--border);padding-top:10px;font-size:11px;color:var(--text-muted)">Create a username to begin.<\/div>';
-    const opts=ul.map(function(x){return'<option value="'+x.key+'">'+escHtml(x.data.displayName)+'<\/option>';}).join('')+'<option value="__new__">+ New user...<\/option>';
-    return '<div style="border-top:0.5px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:6px"><select id="user-sel" style="width:100%;padding:5px 8px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:11px;font-weight:600">'+opts+'<\/select><\/div>';
-  }
+  if (!u) return '';
   const ul = userList();
   const progress = xpToNextUnlock(u);
   const cfg = LEVEL_CONFIG[u.level] || LEVEL_CONFIG[1];
@@ -1278,6 +1293,14 @@ function bindPlayerEvents() {
 window.onload=function(){
   initAls('ADD','guided');
   document.getElementById('map-mem-mini').innerHTML=cpu.mem.map(()=>'<div class="mem-mini-cell"><\/div>').join('');
+  // Start anonymous session - no username required
+  if(Object.keys(saveData.users).length===0){
+    createUser('Player');
+  } else if(saveData.lastUser && saveData.users[saveData.lastUser]){
+    setUser(saveData.lastUser);
+  } else {
+    setUser(Object.keys(saveData.users)[0]);
+  }
   const _pp=document.getElementById('player-panel');
   if(_pp)_pp.innerHTML=buildPlayerPanel();
   bindPlayerEvents();
