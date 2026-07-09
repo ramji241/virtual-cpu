@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ethical Hacker's Map</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;min-height:100vh;padding:24px 16px}
+.page{max-width:1060px;margin:0 auto}
+h1{font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
+.tagline{font-size:13px;color:#666;margin-bottom:20px}
+.canvas{position:relative;width:100%;background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.canvas svg{display:block;width:100%}
+.hotspot{cursor:pointer}
+.hotspot circle.ring{animation:pulse 2.2s ease-in-out infinite}
+.hotspot:nth-child(2n) circle.ring{animation-delay:.5s}
+.hotspot:nth-child(3n) circle.ring{animation-delay:1s}
+.hotspot:nth-child(4n) circle.ring{animation-delay:1.5s}
+.hotspot:nth-child(5n) circle.ring{animation-delay:.3s}
+@keyframes pulse{0%,100%{r:11;opacity:.4}50%{r:16;opacity:.08}}
+.popup{position:fixed;z-index:200;background:#1e293b;color:#f1f5f9;border-radius:10px;padding:14px 16px;width:290px;pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;box-shadow:0 8px 32px rgba(0,0,0,.28)}
+.popup.show{opacity:1;transform:translateY(0)}
+.popup-layer{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;opacity:.55}
+.popup-title{font-size:14px;font-weight:700;margin-bottom:6px;color:#fff;line-height:1.3}
+.popup-desc{font-size:12px;line-height:1.65;color:#cbd5e1;margin-bottom:10px}
+.popup-tools-label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:5px}
+.popup-tools{display:flex;flex-wrap:wrap;gap:4px}
+.popup-tool{background:rgba(255,255,255,.1);border:0.5px solid rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-size:11px;color:#e2e8f0}
+.popup-close{position:absolute;top:10px;right:12px;font-size:16px;cursor:pointer;opacity:.45;pointer-events:all;line-height:1}
+.popup-close:hover{opacity:1}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>The ethical hacker&#39;s map</h1>
+<p class="tagline">Click any hotspot to learn about that vulnerability — what it is and what tools hackers use. Attackers can enter at any layer, not just through the user.</p>
+<div class="canvas">
+<svg viewBox="0 0 1020 500" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- FLOW LABEL -->
+<text x="510" y="26" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#94a3b8" letter-spacing=".05em">DATA FLOW</text>
+<line x1="180" y1="22" x2="470" y2="22" stroke="#e2e8f0" stroke-width="1" marker-end="url(#arr)"/>
+<line x1="550" y1="22" x2="840" y2="22" stroke="#e2e8f0" stroke-width="1" marker-end="url(#arr)"/>
+
+<!-- ══ USER ICON ══ -->
+<!-- User: icon inside circle -->
+<circle cx="110" cy="260" r="70" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+<g transform="translate(74,224) scale(3)">
+  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" fill="#94a3b8"/>
+</g>
+<text x="110" y="350" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#475569">User</text>
+<text x="110" y="364" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64748b">human layer</text>
+
+<!-- ══ LAPTOP ══ -->
+<!-- Layer labels -->
+<text x="320" y="56" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#22c55e">SOFTWARE</text>
+<text x="320" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#ef4444">HARDWARE / CPU</text>
+<!-- Screen (software layer) -->
+<rect x="210" y="84" width="220" height="148" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+<rect x="222" y="96" width="196" height="124" rx="5" fill="#0f172a"/>
+<rect x="234" y="110" width="100" height="6" rx="2" fill="#22d3ee" opacity=".7"/>
+<rect x="234" y="121" width="70" height="6" rx="2" fill="#818cf8" opacity=".6"/>
+<rect x="246" y="132" width="130" height="6" rx="2" fill="#4ade80" opacity=".5"/>
+<rect x="246" y="143" width="80" height="6" rx="2" fill="#818cf8" opacity=".6"/>
+<rect x="234" y="154" width="110" height="6" rx="2" fill="#22d3ee" opacity=".5"/>
+<rect x="234" y="165" width="60" height="6" rx="2" fill="#f472b6" opacity=".6"/>
+<rect x="246" y="176" width="120" height="6" rx="2" fill="#4ade80" opacity=".4"/>
+<rect x="234" y="187" width="90" height="6" rx="2" fill="#22d3ee" opacity=".4"/>
+<rect x="234" y="198" width="10" height="10" rx="1" fill="#22d3ee" opacity=".9"/>
+<circle cx="320" cy="98" r="3" fill="#334155"/>
+<!-- Hinge -->
+<rect x="210" y="230" width="220" height="8" rx="2" fill="#334155"/>
+<!-- Base (hardware layer) -->
+<rect x="200" y="236" width="240" height="22" rx="7" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+<rect x="286" y="241" width="68" height="12" rx="3" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+<!-- Layer brackets -->
+<line x1="206" y1="82" x2="206" y2="232" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="3 2" opacity=".5"/>
+<line x1="196" y1="234" x2="196" y2="260" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3 2" opacity=".5"/>
+<!-- Labels -->
+<text x="320" y="276" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#475569">Laptop</text>
+<text x="320" y="310" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8" font-style="italic">&#x1F50D; Reverse engineering reads this layer</text>
+<text x="320" y="290" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64748b">hardware + software</text>
+
+<!-- ══ ROUTER ══ -->
+<rect x="490" y="178" width="160" height="54" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+<circle cx="512" cy="198" r="5" fill="#4ade80" opacity=".9"/>
+<circle cx="528" cy="198" r="5" fill="#4ade80" opacity=".7"/>
+<circle cx="544" cy="198" r="5" fill="#f59e0b" opacity=".8"/>
+<circle cx="560" cy="198" r="5" fill="#4ade80" opacity=".9"/>
+<circle cx="576" cy="198" r="5" fill="#ef4444" opacity=".7"/>
+<circle cx="592" cy="198" r="5" fill="#4ade80" opacity=".6"/>
+<rect x="505" y="212" width="18" height="12" rx="2" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+<rect x="530" y="212" width="18" height="12" rx="2" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+<rect x="555" y="212" width="18" height="12" rx="2" fill="#0f172a" stroke="#22d3ee" stroke-width="0.5"/>
+<rect x="580" y="212" width="18" height="12" rx="2" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+<line x1="516" y1="178" x2="506" y2="142" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+<circle cx="506" cy="139" r="4" fill="#475569"/>
+<line x1="570" y1="178" x2="570" y2="136" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+<circle cx="570" cy="133" r="4" fill="#475569"/>
+<line x1="630" y1="178" x2="640" y2="142" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+<circle cx="640" cy="139" r="4" fill="#475569"/>
+<path d="M545 160 Q570 150 595 160" fill="none" stroke="#22d3ee" stroke-width="1.5" opacity=".5" stroke-linecap="round"/>
+<path d="M534 152 Q570 139 606 152" fill="none" stroke="#22d3ee" stroke-width="1.5" opacity=".25" stroke-linecap="round"/>
+<text x="570" y="250" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#475569">Router / Switch</text>
+<text x="570" y="264" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64748b">network layer</text>
+
+<!-- ══ SERVER (rack + screen panel showing web app) ══ -->
+<!-- Layer labels -->
+<text x="820" y="56" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#d97706">WEB / APP</text>
+<text x="820" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#db2777">HARDWARE / OS</text>
+<!-- Display panel on top of rack (web app layer - like the laptop screen) -->
+<rect x="740" y="84" width="160" height="110" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+<rect x="752" y="96" width="136" height="86" rx="4" fill="#0f172a"/>
+<!-- Browser bar in panel -->
+<rect x="752" y="96" width="136" height="16" rx="4" fill="#1e3a5f"/>
+<circle cx="762" cy="104" r="3" fill="#ef4444" opacity=".7"/>
+<circle cx="773" cy="104" r="3" fill="#f59e0b" opacity=".7"/>
+<circle cx="784" cy="104" r="3" fill="#4ade80" opacity=".7"/>
+<rect x="793" y="100" width="72" height="8" rx="2" fill="#0f172a"/>
+<text x="830" y="107" text-anchor="middle" font-family="-apple-system,monospace" font-size="6.5" fill="#4ade80" opacity=".8">https://app.example.com</text>
+<!-- Page content -->
+<rect x="760" y="118" width="40" height="6" rx="2" fill="#818cf8" opacity=".7"/>
+<rect x="760" y="128" width="116" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="760" y="136" width="90" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="760" y="144" width="50" height="4" rx="1" fill="#1e3a5f"/>
+<!-- Login form in panel -->
+<rect x="830" y="116" width="50" height="8" rx="2" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+<rect x="830" y="128" width="50" height="8" rx="2" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+<rect x="836" y="140" width="38" height="10" rx="2" fill="#2563eb"/>
+<text x="855" y="148" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="7" fill="#fff">Sign in</text>
+<!-- Server rack body (hardware/OS layer - like the laptop base) -->
+<rect x="740" y="194" width="160" height="180" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+<rect x="740" y="194" width="160" height="14" rx="8" fill="#334155"/>
+<rect x="740" y="200" width="160" height="8" fill="#334155"/>
+<rect x="752" y="216" width="116" height="26" rx="3" fill="#0f172a" stroke="#1e3a5f" stroke-width="0.5"/>
+<circle cx="763" cy="229" r="4" fill="#22d3ee" opacity=".8"/>
+<rect x="774" y="224" width="56" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="774" y="231" width="36" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="861" y="226" width="7" height="7" rx="1" fill="#4ade80" opacity=".8"/>
+<rect x="752" y="250" width="116" height="26" rx="3" fill="#0f172a" stroke="#1e3a5f" stroke-width="0.5"/>
+<circle cx="763" cy="263" r="4" fill="#f59e0b" opacity=".8"/>
+<rect x="774" y="258" width="44" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="774" y="265" width="66" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="861" y="260" width="7" height="7" rx="1" fill="#4ade80" opacity=".8"/>
+<rect x="752" y="284" width="116" height="26" rx="3" fill="#0f172a" stroke="#1e3a5f" stroke-width="0.5"/>
+<circle cx="763" cy="297" r="4" fill="#818cf8" opacity=".8"/>
+<rect x="774" y="292" width="70" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="774" y="299" width="30" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="861" y="294" width="7" height="7" rx="1" fill="#4ade80" opacity=".8"/>
+<rect x="752" y="318" width="116" height="26" rx="3" fill="#0f172a" stroke="#1e3a5f" stroke-width="0.5"/>
+<circle cx="763" cy="331" r="4" fill="#22d3ee" opacity=".8"/>
+<rect x="774" y="326" width="60" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="774" y="333" width="40" height="4" rx="1" fill="#1e3a5f"/>
+<rect x="861" y="328" width="7" height="7" rx="1" fill="#4ade80" opacity=".8"/>
+<!-- Vents -->
+<rect x="752" y="352" width="116" height="10" rx="2" fill="#0f172a"/>
+<line x1="764" y1="354" x2="764" y2="362" stroke="#334155" stroke-width="1"/>
+<line x1="776" y1="354" x2="776" y2="362" stroke="#334155" stroke-width="1"/>
+<line x1="788" y1="354" x2="788" y2="362" stroke="#334155" stroke-width="1"/>
+<line x1="800" y1="354" x2="800" y2="362" stroke="#334155" stroke-width="1"/>
+<line x1="812" y1="354" x2="812" y2="362" stroke="#334155" stroke-width="1"/>
+<line x1="824" y1="354" x2="824" y2="362" stroke="#334155" stroke-width="1"/>
+<line x1="836" y1="354" x2="836" y2="362" stroke="#334155" stroke-width="1"/>
+<!-- Layer brackets -->
+<line x1="736" y1="82" x2="736" y2="195" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3 2" opacity=".5"/>
+<line x1="726" y1="192" x2="726" y2="376" stroke="#db2777" stroke-width="1.5" stroke-dasharray="3 2" opacity=".5"/>
+<!-- Labels -->
+<text x="820" y="392" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#475569">Server</text>
+<text x="820" y="406" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#64748b">hardware + web app</text>
+
+<!-- ══ CONNECTIONS ══ -->
+<line x1="180" y1="260" x2="200" y2="247" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+<line x1="440" y1="205" x2="488" y2="205" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+<line x1="652" y1="205" x2="738" y2="205" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+
+<!-- ══ HOTSPOTS ══ -->
+
+<!-- USER (purple #a855f7) -->
+<g class="hotspot" data-id="13"><circle class="ring" cx="110" cy="190" r="11" fill="#a855f7" opacity=".35"/><circle class="dot" cx="110" cy="190" r="6" fill="#a855f7" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="14"><circle class="ring" cx="49" cy="225" r="11" fill="#a855f7" opacity=".35"/><circle class="dot" cx="49" cy="225" r="6" fill="#a855f7" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="15"><circle class="ring" cx="752" cy="186" r="11" fill="#d97706" opacity=".35"/><circle class="dot" cx="752" cy="186" r="6" fill="#d97706" stroke="#fff" stroke-width="1.5"/></g>
+
+<!-- LAPTOP SOFTWARE (green #22c55e) -->
+<g class="hotspot" data-id="16"><circle class="ring" cx="224" cy="150" r="11" fill="#22c55e" opacity=".35"/><circle class="dot" cx="224" cy="150" r="6" fill="#22c55e" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="17"><circle class="ring" cx="416" cy="150" r="11" fill="#22c55e" opacity=".35"/><circle class="dot" cx="416" cy="150" r="6" fill="#22c55e" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="19"><circle class="ring" cx="416" cy="110" r="11" fill="#22c55e" opacity=".35"/><circle class="dot" cx="416" cy="110" r="6" fill="#22c55e" stroke="#fff" stroke-width="1.5"/></g>
+
+<!-- LAPTOP HARDWARE (red #ef4444) -->
+<g class="hotspot" data-id="1"><circle class="ring" cx="224" cy="247" r="11" fill="#ef4444" opacity=".35"/><circle class="dot" cx="224" cy="247" r="6" fill="#ef4444" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="2"><circle class="ring" cx="320" cy="247" r="11" fill="#ef4444" opacity=".35"/><circle class="dot" cx="320" cy="247" r="6" fill="#ef4444" stroke="#fff" stroke-width="1.5"/></g>
+
+
+<!-- ROUTER (blue #3b82f6) -->
+<g class="hotspot" data-id="4"><circle class="ring" cx="506" cy="148" r="11" fill="#3b82f6" opacity=".35"/><circle class="dot" cx="506" cy="148" r="6" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="5"><circle class="ring" cx="650" cy="205" r="11" fill="#3b82f6" opacity=".35"/><circle class="dot" cx="650" cy="205" r="6" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="6"><circle class="ring" cx="570" cy="232" r="11" fill="#3b82f6" opacity=".35"/><circle class="dot" cx="570" cy="232" r="6" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="18"><circle class="ring" cx="634" cy="148" r="11" fill="#3b82f6" opacity=".35"/><circle class="dot" cx="634" cy="148" r="6" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/></g>
+
+<!-- SERVER WEB APP (amber #d97706) -->
+<g class="hotspot" data-id="10"><circle class="ring" cx="752" cy="148" r="11" fill="#d97706" opacity=".35"/><circle class="dot" cx="752" cy="148" r="6" fill="#d97706" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="11"><circle class="ring" cx="888" cy="148" r="11" fill="#d97706" opacity=".35"/><circle class="dot" cx="888" cy="148" r="6" fill="#d97706" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="12"><circle class="ring" cx="820" cy="186" r="11" fill="#d97706" opacity=".35"/><circle class="dot" cx="820" cy="186" r="6" fill="#d97706" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="20"><circle class="ring" cx="888" cy="186" r="11" fill="#d97706" opacity=".35"/><circle class="dot" cx="888" cy="186" r="6" fill="#d97706" stroke="#fff" stroke-width="1.5"/></g>
+
+<!-- SERVER HARDWARE/OS (green #22c55e) -->
+<g class="hotspot" data-id="7"><circle class="ring" cx="888" cy="237" r="11" fill="#db2777" opacity=".35"/><circle class="dot" cx="888" cy="237" r="6" fill="#db2777" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="8"><circle class="ring" cx="748" cy="305" r="11" fill="#db2777" opacity=".35"/><circle class="dot" cx="748" cy="305" r="6" fill="#db2777" stroke="#fff" stroke-width="1.5"/></g>
+<g class="hotspot" data-id="9"><circle class="ring" cx="888" cy="339" r="11" fill="#db2777" opacity=".35"/><circle class="dot" cx="888" cy="339" r="6" fill="#db2777" stroke="#fff" stroke-width="1.5"/></g>
+
+</svg>
+
+<!-- Legend -->
+<div style="padding:16px;border-top:0.5px solid #e2e8f0;background:#fafafa;border-radius:0 0 12px 12px">
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:12px">Attack surface layers</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:10px;height:10px;border-radius:50%;background:#a855f7;flex-shrink:0;margin-top:3px"></div>
+      <div><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:2px">Human &amp; Social engineering</div><div style="font-size:11px;color:#64748b;line-height:1.5">Often the easiest entry point — no technical knowledge required. A convincing email or phone call can hand over credentials or grant direct access without touching a line of code. Automated credential stuffing is a separate web/application attack — see the server panel.</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;flex-shrink:0;margin-top:3px"></div>
+      <div><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:2px">Network</div><div style="font-size:11px;color:#64748b;line-height:1.5">The pipes connecting everything. Attackers scan for open ports, intercept unencrypted traffic, or exploit weak credentials on internet-facing devices like routers and cameras.</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0;margin-top:3px"></div>
+      <div><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:2px">Hardware / CPU</div><div style="font-size:11px;color:#64748b;line-height:1.5">The foundation everything runs on — present in both laptop and server. Exploits manipulate how the CPU executes code directly, at the level of registers and memory.</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:10px;height:10px;border-radius:50%;background:#db2777;flex-shrink:0;margin-top:3px"></div>
+      <div><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:2px">OS &amp; Services</div><div style="font-size:11px;color:#64748b;line-height:1.5">Sits on top of the server hardware. After gaining initial access, attackers escalate privileges. Misconfigured files and unpatched services are the most common paths upward.</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0;margin-top:3px"></div>
+      <div><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:2px">Local software</div><div style="font-size:11px;color:#64748b;line-height:1.5">Applications running on the laptop. Bugs in local software can be exploited to execute arbitrary code or escalate privileges on that machine.</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="width:10px;height:10px;border-radius:50%;background:#d97706;flex-shrink:0;margin-top:3px"></div>
+      <div><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:2px">Web &amp; Application</div><div style="font-size:11px;color:#64748b;line-height:1.5">The app running on top of the server. Websites and APIs are often the most exposed surface — attackers inject commands, steal session tokens, or manipulate URLs to access other users' data.</div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="popup" id="popup">
+  <span class="popup-close" id="popup-close">&#x2715;</span>
+  <div class="popup-layer" id="popup-layer"></div>
+  <div class="popup-title" id="popup-title"></div>
+  <div class="popup-desc" id="popup-desc"></div>
+  <div class="popup-tools-label">Common tools</div>
+  <div class="popup-tools" id="popup-tools"></div>
+</div>
+</div>
+
+<script>
+const VULNS={
+  1:{layer:'Hardware / CPU',title:'Buffer overflow',desc:'Writing data past the end of a buffer into adjacent memory. Attackers overwrite return addresses to redirect the CPU to execute their own code. Applies equally to server-side C code — web servers and daemons share this vulnerability.',tools:['GDB','pwntools','pwndbg','ROPgadget','checksec']},
+  2:{layer:'Hardware / CPU',title:'Integer overflow',desc:'Arithmetic that produces a result too large for the variable type wraps around to a small number. A check like "if size < MAX" can be bypassed if the attacker makes size wrap unexpectedly. Common in both local and server-side C/C++ code.',tools:['GDB','AFL','static analysis','sanitizers']},
+  3:{layer:'Attacker technique',title:'Binary analysis & reverse engineering',desc:'Reading compiled binary/machine code to understand what a program does without source code. This is an attacker technique rather than a vulnerability — used to find weaknesses in executables, firmware, and closed-source software. The foundation of CTF pwn challenges.',tools:['Ghidra','IDA Pro','GDB','radare2','objdump','strings']},
+  4:{layer:'Network',title:'Man-in-the-middle (MITM)',desc:'Intercepting traffic between two parties who believe they are communicating directly. On an unencrypted network, an attacker can read passwords, session tokens, and file transfers — or silently modify data in transit.',tools:['Wireshark','Bettercap','mitmproxy','arpspoof','Ettercap']},
+  5:{layer:'Network',title:'Open ports & exposed services',desc:'Services listening on ports that should not be public, or running outdated vulnerable versions. Scanning for open ports is almost always the first step in attacking a network target.',tools:['Nmap','Masscan','Shodan','Netcat','Metasploit']},
+  6:{layer:'Network',title:'Weak / default credentials',desc:'Routers, switches, and IoT devices shipped with passwords users never change. Also extremely common on web app admin panels left at factory defaults (admin/admin). Includes weak passwords that fall to dictionary or brute-force attacks.',tools:['Hydra','Medusa','CrackMapExec','Hashcat','default cred DBs']},
+  7:{layer:'OS / Services',title:'Privilege escalation',desc:'Gaining higher access than granted — from normal user to root or SYSTEM. Achieved by exploiting kernel vulnerabilities, misconfigured SUID binaries, weak sudo rules, or services running as root. Applies equally to laptops — after malware lands, escalation is the next step.',tools:['LinPEAS','WinPEAS','GTFOBins','sudo -l','PEASS-ng']},
+  8:{layer:'OS / Services',title:'Misconfigured permissions',desc:'Files, services, or directories with overly permissive access controls. A world-writable cron script running as root, or a config file containing credentials readable by everyone. Often the path from initial foothold to full compromise.',tools:['find','ls -la','icacls','AccessChk','LinPEAS']},
+  9:{layer:'OS / Services',title:'Unpatched services & CVEs',desc:'Services running known vulnerable versions. Once a CVE is published, systems without the patch become easy targets — exploit code is often publicly available within hours of disclosure.',tools:['Nmap','searchsploit','Metasploit','CVE databases','Nessus']},
+  10:{layer:'Web / Application',title:'SQL injection',desc:'Inserting SQL commands into input fields passed to a database without sanitisation. Can read, modify, or delete any data — or in some cases execute OS commands on the server.',tools:['sqlmap','Burp Suite','manual testing','OWASP ZAP']},
+  11:{layer:'Web / Application',title:'Cross-site scripting (XSS)',desc:'Injecting malicious JavaScript into a page that other users see. Runs in the victim browser and can steal session cookies, redirect users, or perform actions on their behalf. Stored XSS persists in the database and attacks every visitor.',tools:['Burp Suite','XSStrike','OWASP ZAP','Dalfox','manual testing']},
+  12:{layer:'Web / Application',title:'Broken auth, IDOR & injection',desc:'Weak session management or accessing data by changing an ID in the URL (e.g. /user/123 to /user/124) allows account takeover. Also covers command injection (appending shell commands to unsanitised inputs) and insecure deserialization (tampering with serialized objects to execute code).',tools:['Burp Suite','jwt_tool','ysoserial','commix','OWASP ZAP']},
+  13:{layer:'Human / Social engineering',title:'Phishing',desc:'Deceptive emails or messages that trick victims into clicking a malicious link, entering credentials on a fake site, or downloading malware. The most common initial access technique in real-world breaches.',tools:['GoPhish','SET','OSINT tools','awareness training']},
+  14:{layer:'Human / Social engineering',title:'Pretexting & impersonation',desc:'Calling or messaging a target while pretending to be IT support, a colleague, or a vendor. Persuades them to reveal credentials, reset passwords, or grant access without proper verification.',tools:['OSINT','LinkedIn recon','caller ID spoofing','SET']},
+  15:{layer:'Web / Application',title:'Credential stuffing & password spraying',desc:'Taking leaked username/password lists from data breaches and automatically trying them against login pages — most people reuse passwords across services. Purely automated, no human interaction needed. Spraying tries one common password against many accounts to avoid lockouts.',tools:['Hydra','Burp Suite','CrackMapExec','HaveIBeenPwned','Hashcat']},
+  16:{layer:'Local software',title:'Local application vulnerabilities',desc:'Bugs in software running on the laptop — use-after-free, format string bugs, insecure file handling. Can allow an attacker with limited access to escalate privileges or execute arbitrary code on that machine.',tools:['GDB','Ghidra','pwntools','Valgrind','AddressSanitizer']},
+  17:{layer:'Local software',title:'Malware & trojans',desc:'Malicious software installed on the machine — keyloggers, RATs (remote access trojans), ransomware. Often delivered via phishing or a malicious download. Once installed, it operates from inside the machine and can exfiltrate data or grant remote access.',tools:['Wireshark','Process Monitor','Autoruns','strings','Ghidra']},
+  18:{layer:'Network',title:'DNS poisoning / spoofing',desc:'Corrupting DNS responses so that a domain name resolves to the wrong IP address. Victims are silently redirected to an attacker-controlled server even if they type the correct URL. Used to intercept traffic, steal credentials, or serve malware.',tools:['Ettercap','dnschef','Bettercap','Wireshark']},
+  19:{layer:'Local software',title:'Supply chain attack',desc:'Compromising software before it reaches the user — injecting malicious code into a library, build tool, or software update. The victim installs what looks like legitimate software but it is already backdoored. SolarWinds (2020) and XZ Utils (2024) are well-known examples.',tools:['Wireshark','strings','Ghidra','process monitoring','integrity verification']},
+  20:{layer:'Web / Application',title:'File inclusion (LFI / RFI)',desc:'Local file inclusion (LFI) tricks the server into reading files from its own filesystem — e.g. /etc/passwd or private config files. Remote file inclusion (RFI) goes further, loading and executing a file from an attacker-controlled server. Both result from unsanitised file path inputs.',tools:['Burp Suite','dotdotpwn','OWASP ZAP','manual testing']}
+};
+
+const popup=document.getElementById('popup');
+const popupClose=document.getElementById('popup-close');
+function show(id,x,y){
+  const v=VULNS[id];if(!v)return;
+  document.getElementById('popup-layer').textContent=v.layer;
+  document.getElementById('popup-title').textContent=v.title;
+  document.getElementById('popup-desc').textContent=v.desc;
+  document.getElementById('popup-tools').innerHTML=v.tools.map(t=>'<span class="popup-tool">'+t+'</span>').join('');
+  popup.classList.add('show');
+  pos(x,y);
+}
+function pos(x,y){
+  const w=popup.offsetWidth||290,h=popup.offsetHeight||220;
+  popup.style.left=(x+16+w>window.innerWidth-8?x-w-16:x+16)+'px';
+  popup.style.top=(y+16+h>window.innerHeight-8?y-h-16:y+16)+'px';
+}
+document.querySelectorAll('.hotspot').forEach(n=>{
+  n.addEventListener('click',function(e){
+    e.stopPropagation();
+    show(parseInt(this.dataset.id),e.clientX,e.clientY);
+  });
+});
+popupClose.addEventListener('click',function(e){e.stopPropagation();popup.classList.remove('show');});
+document.addEventListener('click',function(){popup.classList.remove('show');});
+</script>
+</body>
+</html>
