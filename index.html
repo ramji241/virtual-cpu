@@ -555,115 +555,85 @@ function updateMapMem(){
   if(mini)mini.innerHTML=cpu.mem.map(v=>'<div class="mem-mini-cell'+(v?' nz':'')+'"><\/div>').join('');
 }
 function buildWelcomeContent(){
-  document.getElementById('cpu-pane').innerHTML=
-  '<div class="pane-header"><div class="pane-title">Virtual CPU<\/div><div class="pane-subtitle">A hands-on computer for aspiring ethical hackers<\/div><\/div>'
-  +'<div style="font-size:13px;color:var(--text-secondary);line-height:1.8;max-width:520px">'
-
-  +'<div style="background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:11px 14px;margin-bottom:14px">'
-    +'<div style="font-size:12px;font-weight:700;color:var(--text-accent);margin-bottom:6px">What this is for<\/div>'
-    +'<div style="font-size:12px;color:var(--text-accent);line-height:1.7">'
-      +'Ethical hackers and CTF competitors need to understand what a computer is actually doing at the lowest level. '
-      +'Most security vulnerabilities — buffer overflows, reverse engineering challenges, exploit development — '
-      +'happen at the level of individual CPU instructions, registers, and memory. '
-      +'This app builds that foundation from the ground up, starting from a single logic gate and ending at a running program.'
-    +'<\/div>'
-  +'<\/div>'
-
-  +'<div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px;margin-top:4px">How it works<\/div>'
-  +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">'
-    +'<div style="display:flex;gap:10px;align-items:flex-start">'
-      +'<div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">1<\/div>'
-      +'<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>ALU<\/strong> — start here. Work through binary arithmetic the way a real CPU does it: bit by bit, with a carry flag and a flags register.<\/div>'
-    +'<\/div>'
-    +'<div style="display:flex;gap:10px;align-items:flex-start">'
-      +'<div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">2<\/div>'
-      +'<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>Registers, Flags, Memory<\/strong> — inspect the CPU&#39;s working state at any time. See how values move between registers and RAM.<\/div>'
-    +'<\/div>'
-    +'<div style="display:flex;gap:10px;align-items:flex-start">'
-      +'<div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">3<\/div>'
-      +'<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>Control unit<\/strong> — step through a randomly generated assembly program instruction by instruction. When you finish, try the hack challenge: change one instruction and predict what the output becomes.<\/div>'
-    +'<\/div>'
-  +'<\/div>'
-
-  +'<div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 14px;margin-bottom:14px">'
-    +'<div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:6px">About the monitor in the control unit<\/div>'
-    +'<div style="font-size:12px;color:var(--text-secondary);line-height:1.7">'
-      +'The dark panel at the top of the control unit is a monitor showing the program written in <strong>C<\/strong>. '
-      +'Assembly language is what the CPU actually executes — one instruction, one operation. '
-      +'C is a higher-level language that a compiler translates into those assembly instructions. '
-      +'The monitor shows you both at once: the C source a programmer might have written, and the assembly the CPU is running underneath it. '
-      +'The highlighted line shows exactly which C statement produced the current assembly instruction. '
-      +'This is the same relationship you will encounter in real CTF reverse engineering: '
-      +'you see assembly in the disassembler, and you work backwards to understand what the original program was doing.'
-    +'<\/div>'
-  +'<\/div>'
-
-  +'<div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">'
-    +'The assembly language used here is a simplified teaching version, not tied to any specific real CPU. '
-    +'The concepts — registers, flags, jumps, memory — are universal across x86, ARM, and every other architecture you will encounter.'
-  +'<\/div>'
-
-  +'<\/div>';
+  var pane=document.getElementById('cpu-pane');
+  if(!pane)return;
+  var h='';
+  h+='<div class="pane-header"><div class="pane-title">Virtual CPU<\/div>';
+  h+='<div class="pane-subtitle">A hands-on computer for aspiring ethical hackers<\/div><\/div>';
+  h+='<div style="font-size:13px;color:var(--text-secondary);line-height:1.8;max-width:520px">';
+  h+='<div style="background:var(--bg-accent);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:11px 14px;margin-bottom:14px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text-accent);margin-bottom:6px">What this is for<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-accent);line-height:1.7">Ethical hackers and CTF competitors need to understand what the CPU is actually doing. Most security vulnerabilities happen at the level of individual instructions, registers, and memory. This app builds that foundation from the ground up.<\/div>';
+  h+='<\/div>';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px;margin-top:4px">How it works<\/div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
+  h+='<div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">1<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>ALU<\/strong> &mdash; start here. Work through binary arithmetic bit by bit, with carry flag and flags register.<\/div><\/div>';
+  h+='<div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">2<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>Registers, Flags, Memory<\/strong> &mdash; inspect CPU state and see how values move between registers and RAM.<\/div><\/div>';
+  h+='<div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--fill-accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">3<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.6"><strong>Control unit<\/strong> &mdash; step through a generated assembly program. When done, try the hack challenge: change an instruction and predict the new output.<\/div><\/div>';
+  h+='<\/div>';
+  h+='<div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 14px;margin-bottom:14px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:6px">About the monitor<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.7">The dark panel in the control unit shows the program written in <strong>C<\/strong>. Assembly is what the CPU actually runs; C is a higher-level language a compiler translates into those instructions. The highlighted line shows which C statement produced the current instruction &mdash; the same relationship you encounter in real CTF reverse engineering.<\/div>';
+  h+='<\/div>';
+  h+='<div style="font-size:12px;color:var(--text-muted);line-height:1.6">The assembly here is a simplified teaching version. The concepts &mdash; registers, flags, jumps, memory &mdash; are universal across x86, ARM, and every other architecture.<\/div>';
+  h+='<\/div>';
+  pane.innerHTML=h;
 }
 
 function showWelcome(){
-  ['alu','regs','flags','mem','cu'].forEach(k=>{const el=document.getElementById('map-'+k);if(el)el.classList.remove('active');});
+  ['alu','regs','flags','mem','cu'].forEach(function(k){
+    var el=document.getElementById('map-'+k);
+    if(el)el.classList.remove('active');
+  });
   currentPane=null;
-  // Update player panel
-  const pp=document.getElementById('player-panel');
-  if(pp) pp.innerHTML=buildPlayerPanel();
+  var pp=document.getElementById('player-panel');
+  if(pp){pp.innerHTML=buildPlayerPanel();}
   bindPlayerEvents();
 
-  const hasUsers=Object.keys(saveData.users).length>0;
-  const pane=document.getElementById('cpu-pane');
+  var pane=document.getElementById('cpu-pane');
   if(!pane)return;
 
   if(!currentUser||!saveData.users[currentUser]){
-    // Show user selection / creation
-    const ul=userList();
-    const userCards=ul.map(function(item){
-    var key=item.key,data=item.data;
-    return '<div data-userkey="'+key+'" class="user-card" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px">'
-      +'<div><div style="font-size:13px;font-weight:700">'+escHtml(data.displayName)+'<\/div><div style="font-size:11px;color:var(--text-muted)">'+LEVEL_CONFIG[Math.min(data.maxUnlocked,6)].label+' &bull; '+data.xp+' XP<\/div><\/div>'
-      +'<div style="font-size:11px;color:var(--text-accent)">&#9654; Continue<\/div>'
-      +'<\/div>';
-  }).join('')
+    var ul=userList();
+    var html='<div class="pane-header"><div class="pane-title">Virtual CPU<\/div><div class="pane-subtitle">A hands-on computer for aspiring ethical hackers<\/div><\/div>';
+    if(ul.length>0){
+      html+='<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Select a user<\/div>';
+      ul.forEach(function(item){
+        html+='<div data-userkey="'+item.key+'" class="user-card" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px">';
+        html+='<div><div style="font-size:13px;font-weight:700">'+escHtml(item.data.displayName)+'<\/div>';
+        html+='<div style="font-size:11px;color:var(--text-muted)">'+LEVEL_CONFIG[Math.min(item.data.maxUnlocked,6)].label+' &bull; '+item.data.xp+' XP<\/div><\/div>';
+        html+='<div style="font-size:11px;color:var(--text-accent)">&#9654; Continue<\/div><\/div>';
+      });
+      html+='<\/div><div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;text-align:center">&#8212; or &#8212;<\/div>';
+    }
+    html+='<div style="background:var(--surface-1);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:12px;margin-bottom:14px">';
+    html+='<div style="font-size:12px;font-weight:700;color:var(--text-accent);margin-bottom:8px">'+(ul.length?'Create new user':'Create a username to begin')+'<\/div>';
+    html+='<div style="display:flex;gap:6px">';
+    html+='<input id="welcome-username" type="text" placeholder="Enter username" style="flex:1;padding:7px 10px;border:0.5px solid var(--border-accent);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px">';
+    html+='<button id="welcome-create-btn" style="padding:7px 16px;border-radius:var(--radius);border:none;background:var(--fill-accent);color:#fff;font-size:13px;font-weight:500;cursor:pointer">Start<\/button>';
+    html+='<\/div><\/div>';
+    pane.innerHTML=html;
 
-    pane.innerHTML='<div class="pane-header"><div class="pane-title">Virtual CPU<\/div><div class="pane-subtitle">A hands-on computer for aspiring ethical hackers<\/div><\/div>'
-      +(ul.length>0
-        ? '<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:8px">Select a user<\/div>'+userCards+'<\/div><div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;text-align:center">&#8212; or &#8212;<\/div>'
-        : '')
-      +'<div style="background:var(--surface-1);border:0.5px solid var(--border-accent);border-radius:var(--radius);padding:12px;margin-bottom:14px">'
-        +'<div style="font-size:12px;font-weight:700;color:var(--text-accent);margin-bottom:8px">'+(ul.length?'Create new user':'Create a username to begin')+'<\/div>'
-        +'<div style="display:flex;gap:6px">'
-          +'<input id="welcome-username" type="text" placeholder="Enter username" style="flex:1;padding:7px 10px;border:0.5px solid var(--border-accent);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px">'
-          +'<button id="welcome-create-btn" style="padding:7px 16px;border-radius:var(--radius);border:none;background:var(--fill-accent);color:#fff;font-size:13px;font-weight:500;cursor:pointer">Start<\/button>'
-        +'<\/div>'
-      +'<\/div>';
-
-    // Bind create button
     setTimeout(function(){
-      const btn=document.getElementById('welcome-create-btn');
-      const inp=document.getElementById('welcome-username');
+      var btn=document.getElementById('welcome-create-btn');
+      var inp=document.getElementById('welcome-username');
       if(btn&&inp){
-        btn.addEventListener('click',function(){const name=inp.value.trim();if(name){createUser(name);showWelcome();}});
-        inp.addEventListener('keydown',function(e){if(e.key==='Enter'){const name=inp.value.trim();if(name){createUser(name);showWelcome();};}});
+        btn.addEventListener('click',function(){var name=inp.value.trim();if(name){createUser(name);showWelcome();}});
+        inp.addEventListener('keydown',function(e){if(e.key==='Enter'){var name=inp.value.trim();if(name){createUser(name);showWelcome();}}});
       }
-      // Bind user card clicks
       document.querySelectorAll('.user-card[data-userkey]').forEach(function(card){
-        card.addEventListener('click',function(){
-          setUser(card.getAttribute('data-userkey'));
-          showWelcome();
-        });
+        card.addEventListener('click',function(){setUser(card.getAttribute('data-userkey'));showWelcome();});
         card.addEventListener('mouseover',function(){card.style.borderColor='var(--fill-accent)';});
         card.addEventListener('mouseout',function(){card.style.borderColor='var(--border)';});
       });
     },50);
     return;
   }
-
-  // User is set - show full welcome
-  buildWelcomeContent();}
+  buildWelcomeContent();
+}
 
 function resetAll(){
   cpu={regs:[0,0,0,0],pc:0,mem:new Array(32).fill(0),flags:{zero:0,bit8:0,bit7:0}};
