@@ -683,6 +683,11 @@ function buildWelcomeContent(){
   h+='<div style="font-size:12px;color:var(--text-secondary);line-height:1.7">The dark panel in the control unit shows the program written in <strong>C<\/strong>. Assembly is what the CPU actually runs; C is a higher-level language a compiler translates into those instructions. The highlighted line shows which C statement produced the current instruction &mdash; the same relationship you encounter in real CTF reverse engineering.<\/div>';
   h+='<\/div>';
   h+='<div style="font-size:12px;color:var(--text-muted);line-height:1.6">The assembly here is a simplified teaching version. The concepts &mdash; registers, flags, jumps, memory &mdash; are universal across x86, ARM, and every other architecture.<\/div>';
+  h+='<div style="margin-top:16px;padding:10px 14px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);font-size:12px">';
+  h+='<span style="color:var(--text-muted)">New to ethical hacking? </span>';
+  h+='<a href="hacker_map.html" target="_blank" style="color:var(--text-accent);font-weight:600;text-decoration:none">See the ethical hacker's map &rarr;<\/a>';
+  h+='<span style="color:var(--text-muted);font-size:11px;display:block;margin-top:3px">An interactive overview of the full attack surface — where this app fits in the bigger picture.<\/span>';
+  h+='<\/div>';
   h+='<\/div>';
   pane.innerHTML=h;
 }

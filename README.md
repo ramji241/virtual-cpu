@@ -4,6 +4,8 @@
 
 Live demo: [ramji241.github.io/virtual-cpu](https://ramji241.github.io/virtual-cpu)
 
+**[The ethical hacker's map](https://ramji241.github.io/virtual-cpu/hacker_map.html)** — an interactive overview of the full attack surface landscape, from social engineering through to hardware exploitation. 19 clickable vulnerability hotspots across 6 layers.
+
 ---
 
 ## The story
